@@ -18,7 +18,7 @@ interface Program {
 }
 
 export const ProgramsPage = () => {
-  const [activeTab, setActiveTab] = useState('view');
+  const [activeTab, setActiveTab] = useState('hubs');
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,9 +146,100 @@ export const ProgramsPage = () => {
   const completedPrograms = programs.filter(p => p.status === 'completed');
   const statuses = content?.programs?.statuses || [];
 
+  const sponsorshipProgram = programs.find((program) =>
+    program.name.toLowerCase().includes('sponsor') ||
+    program.name.toLowerCase().includes('sponsorship')
+  );
+
+  const soccerProgram = programs.find((program) =>
+    program.name.toLowerCase().includes('soccer')
+  );
+
+  const rescueProgram = programs.find((program) =>
+    program.name.toLowerCase().includes('rescue')
+  );
+
+  const feedingProgram = programs.find((program) =>
+    program.name.toLowerCase().includes('feeding') ||
+    program.name.toLowerCase().includes('food')
+  );
+
+  const renderHubCard = (
+    title: string,
+    description: string,
+    program?: Program,
+    actions?: { label: string; to: string }[]
+  ) => (
+    <div
+      style={{
+        backgroundColor: '#111',
+        border: '1px solid #333',
+        borderRadius: '8px',
+        padding: '1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem'
+      }}
+    >
+      {program ? (
+        <Link
+          to={`/programs/${program.id}/dashboard`}
+          style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+        >
+          <h3 style={{ margin: 0, color: '#fff' }}>{title}</h3>
+          <p style={{ margin: '0.5rem 0 0', color: '#bbb' }}>{description}</p>
+          <div style={{ color: '#ddd', fontSize: '0.95rem', marginTop: '0.75rem' }}>
+            <strong>Budget:</strong> ${program.budget.toLocaleString()} | <strong>Spent:</strong> ${program.spent.toLocaleString()}
+          </div>
+          <div style={{ color: '#ddd', fontSize: '0.95rem', marginTop: '0.25rem' }}>
+            <strong>Beneficiaries:</strong> {program.beneficiaries.toLocaleString()} | <strong>Status:</strong> {program.status}
+          </div>
+          <div style={{ color: '#9bd0ff', fontSize: '0.9rem', marginTop: '0.6rem', fontWeight: 600 }}>
+            Click card to open dashboard
+          </div>
+        </Link>
+      ) : (
+        <>
+          <h3 style={{ margin: 0, color: '#fff' }}>{title}</h3>
+          <p style={{ margin: 0, color: '#bbb' }}>{description}</p>
+          <div style={{ color: '#f44336', fontSize: '0.95rem' }}>
+            Program not yet created in backend. Add it in the + Add Program tab.
+          </div>
+        </>
+      )}
+      {actions && actions.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+          {actions.map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              style={{
+                backgroundColor: '#ff0000',
+                color: '#fff',
+                textDecoration: 'none',
+                padding: '0.5rem 0.8rem',
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                fontWeight: 600
+              }}
+            >
+              {action.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="tabbed-page">
       <div className="tab-navigation">
+        <button
+          className={`tab ${activeTab === 'hubs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hubs')}
+        >
+          Program Hubs
+        </button>
         <button 
           className={`tab ${activeTab === 'view' ? 'active' : ''}`}
           onClick={() => setActiveTab('view')}
@@ -180,6 +271,61 @@ export const ProgramsPage = () => {
         {loading && <div style={{ padding: '2rem', color: '#fff', textAlign: 'center' }}>Loading programs...</div>}
         {error && <div style={{ padding: '2rem', color: '#f44336', textAlign: 'center' }}>{error}</div>}
 
+        {!loading && activeTab === 'hubs' && (
+          <div className="form-layout" style={{ maxWidth: '100%' }}>
+            <h2>Program Hubs</h2>
+            <p style={{ color: '#bbb', marginBottom: '1.25rem' }}>
+              Select a program hub to go deeper into operations. Sponsorship includes direct access to candidates and sponsorship records.
+            </p>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '1rem'
+              }}
+            >
+              {renderHubCard(
+                'Sponsorship Program',
+                'Manage sponsor-to-candidate matching, sponsorship records, and payment tracking.',
+                sponsorshipProgram,
+                [
+                  { label: 'Open Program Dashboard', to: sponsorshipProgram ? `/programs/${sponsorshipProgram.id}/dashboard` : '/programs' },
+                  { label: 'Sponsorship Candidates', to: '/girls' },
+                  { label: 'Sponsorships', to: '/sponsorships' }
+                ]
+              )}
+              {renderHubCard(
+                'Soccer Program',
+                'Track soccer participants, schedules, kit support, and attendance.',
+                soccerProgram,
+                [
+                  { label: 'Open Program Dashboard', to: soccerProgram ? `/programs/${soccerProgram.id}/dashboard` : '/programs' },
+                  { label: 'Participants', to: '/participants' }
+                ]
+              )}
+              {renderHubCard(
+                'Girls Rescue Center Program',
+                'Manage rescue center enrollment, wellbeing support, and related case tracking.',
+                rescueProgram,
+                [
+                  { label: 'Open Program Dashboard', to: rescueProgram ? `/programs/${rescueProgram.id}/dashboard` : '/programs' },
+                  { label: 'Participants', to: '/participants' }
+                ]
+              )}
+              {renderHubCard(
+                'Feeding Program',
+                'Track food support beneficiaries, distribution cycles, and associated costs.',
+                feedingProgram,
+                [
+                  { label: 'Open Program Dashboard', to: feedingProgram ? `/programs/${feedingProgram.id}/dashboard` : '/programs' },
+                  { label: 'Participants', to: '/participants' },
+                  { label: 'Donations', to: '/donations' }
+                ]
+              )}
+            </div>
+          </div>
+        )}
+
         {!loading && activeTab === 'view' && (
           <div className="form-layout">
             <h2>All Programs</h2>
@@ -203,7 +349,11 @@ export const ProgramsPage = () => {
                 ) : (
                   programs.map((program) => (
                     <tr key={program.id}>
-                      <td>{program.name}</td>
+                      <td>
+                        <Link to={`/programs/${program.id}/dashboard`} style={{ color: '#9bd0ff' }}>
+                          {program.name}
+                        </Link>
+                      </td>
                       <td>${program.budget.toLocaleString()}</td>
                       <td>${program.spent.toLocaleString()}</td>
                       <td>{program.status}</td>
@@ -226,6 +376,22 @@ export const ProgramsPage = () => {
                           >
                             ✏️ Edit
                           </button>
+                          <Link
+                            to={`/programs/${program.id}/dashboard`}
+                            style={{
+                              padding: '0.4rem 0.8rem',
+                              backgroundColor: '#4CAF50',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              textDecoration: 'none',
+                              display: 'inline-block'
+                            }}
+                          >
+                            Dashboard
+                          </Link>
                           <button 
                             className="delete-btn"
                             onClick={() => handleDelete(program.id)}
@@ -380,12 +546,13 @@ export const ProgramsPage = () => {
                   <th>Remaining</th>
                   <th>Progress</th>
                   <th>Beneficiaries</th>
+                  <th>Dashboard</th>
                 </tr>
               </thead>
               <tbody>
                 {activePrograms.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center' }}>No active programs</td>
+                    <td colSpan={7} style={{ textAlign: 'center' }}>No active programs</td>
                   </tr>
                 ) : (
                   activePrograms.map((program) => {
@@ -393,12 +560,31 @@ export const ProgramsPage = () => {
                     const progress = Math.round((program.spent / program.budget) * 100);
                     return (
                       <tr key={program.id}>
-                        <td>{program.name}</td>
+                        <td>
+                          <Link to={`/programs/${program.id}/dashboard`} style={{ color: '#9bd0ff' }}>
+                            {program.name}
+                          </Link>
+                        </td>
                         <td>${program.budget.toLocaleString()}</td>
                         <td>${program.spent.toLocaleString()}</td>
                         <td>${remaining.toLocaleString()}</td>
                         <td>{progress}%</td>
                         <td>{program.beneficiaries}</td>
+                        <td>
+                          <Link
+                            to={`/programs/${program.id}/dashboard`}
+                            style={{
+                              backgroundColor: '#4CAF50',
+                              color: '#fff',
+                              textDecoration: 'none',
+                              padding: '0.35rem 0.7rem',
+                              borderRadius: '4px',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            Open
+                          </Link>
+                        </td>
                       </tr>
                     );
                   })
@@ -419,21 +605,41 @@ export const ProgramsPage = () => {
                   <th>Total Spent</th>
                   <th>Beneficiaries</th>
                   <th>End Date</th>
+                  <th>Dashboard</th>
                 </tr>
               </thead>
               <tbody>
                 {completedPrograms.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center' }}>No completed programs</td>
+                    <td colSpan={6} style={{ textAlign: 'center' }}>No completed programs</td>
                   </tr>
                 ) : (
                   completedPrograms.map((program) => (
                     <tr key={program.id}>
-                      <td>{program.name}</td>
+                        <td>
+                          <Link to={`/programs/${program.id}/dashboard`} style={{ color: '#9bd0ff' }}>
+                            {program.name}
+                          </Link>
+                        </td>
                       <td>${program.budget.toLocaleString()}</td>
                       <td>${program.spent.toLocaleString()}</td>
                       <td>{program.beneficiaries}</td>
                       <td>{new Date(program.endDate).toLocaleDateString()}</td>
+                      <td>
+                        <Link
+                          to={`/programs/${program.id}/dashboard`}
+                          style={{
+                            backgroundColor: '#4CAF50',
+                            color: '#fff',
+                            textDecoration: 'none',
+                            padding: '0.35rem 0.7rem',
+                            borderRadius: '4px',
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          Open
+                        </Link>
+                      </td>
                     </tr>
                   ))
                 )}

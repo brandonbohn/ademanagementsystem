@@ -473,3 +473,46 @@ export const participantAPI = {
   }
 };
 
+// Grants API
+export const grantAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/grants`);
+    if (!response.ok) throw new Error('Failed to fetch grants');
+    return response.json();
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_URL}/grants/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch grant');
+    return response.json();
+  },
+
+  create: async (grant: any) => {
+    const response = await fetch(`${API_URL}/grants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(grant)
+    });
+    if (!response.ok) throw new Error('Failed to create grant');
+    return response.json();
+  },
+
+  update: async (id: string, grant: any) => {
+    const response = await fetch(`${API_URL}/grants/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(grant)
+    });
+    if (!response.ok) throw new Error('Failed to update grant');
+    return response.json();
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_URL}/grants/${id}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Failed to delete grant');
+    return response.json();
+  }
+};
+

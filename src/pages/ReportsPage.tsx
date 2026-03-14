@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { reportAPI, programAPI, expenseAPI, budgetAPI } from '../services/api';
-import { useContent } from '../contexts/ContentContext';
+import {
+  reportAPI,
+  programAPI,
+  expenseAPI,
+  budgetAPI,
+  donorAPI,
+  donationAPI,
+  sponsorshipAPI
+} from '../services/api';
 import './TabbedPage.css';
 import './ExpensesPage.css';
+
+type ReportType = 'program' | 'financial' | 'donor' | 'donation' | 'sponsorship';
 
 interface Report {
   id: string;
   title: string;
-  type: 'financial' | 'program' | 'donor' | 'quarterly' | 'annual';
+  type: ReportType;
   period: string;
   generatedDate: string;
   summary: string;
@@ -20,28 +29,162 @@ interface Report {
 
 type ReportForm = {
   title: string;
-  type: Report['type'];
-  period: string;
+  type: ReportType;
+  periodMonth: string;
   summary: string;
 };
 
+type Snapshot = {
+  month: string;
+  totalBudget: number;
+  totalSpent: number;
+  programsCount: number;
+  beneficiariesReached: number;
+  activePrograms: number;
+  pendingExpenses: number;
+  monthlyDonationsTotal: number;
+  monthlyDonationsCount: number;
+  monthlyDonorsCount: number;
+  activeSponsorships: number;
+  monthlySponsorshipAmount: number;
+};
+
+const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
+  { value: 'program', label: 'Program Report (Monthly)' },
+  { value: 'financial', label: 'Financial Report (Monthly)' },
+  { value: 'donor', label: 'Donor Report (Monthly)' },
+  { value: 'donation', label: 'Donation Report (Monthly)' },
+  { value: 'sponsorship', label: 'Sponsorship Report (Monthly)' }
+];
+
+const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+
+const getMonthDateRange = (month: string) => {
+  const [yearPart, monthPart] = month.split('-');
+  const year = Number(yearPart);
+  const monthIndex = Number(monthPart) - 1;
+  const start = new Date(year, monthIndex, 1);
+  const end = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+  return { start, end };
+};
+
+const inMonth = (dateValue: string | undefined, month: string) => {
+  if (!dateValue || !month) return false;
+  const { start, end } = getMonthDateRange(month);
+  const value = new Date(dateValue);
+  return !Number.isNaN(value.getTime()) && value >= start && value <= end;
+};
+
+const overlapsMonth = (startDate: string | undefined, endDate: string | undefined, month: string) => {
+  if (!startDate || !month) return false;
+  const { start, end } = getMonthDateRange(month);
+  const startValue = new Date(startDate);
+  const endValue = endDate ? new Date(endDate) : end;
+  if (Number.isNaN(startValue.getTime()) || Number.isNaN(endValue.getTime())) return false;
+  return startValue <= end && endValue >= start;
+};
+
+const formatMonthLabel = (period: string) => {
+  const [year, month] = period.split('-');
+  if (!year || !month) return period;
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  if (Number.isNaN(date.getTime())) return period;
+  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+};
+
+const buildSnapshot = (
+  month: string,
+  programsInput: unknown,
+  expensesInput: unknown,
+  budgetsInput: unknown,
+  donationsInput: unknown,
+  sponsorshipsInput: unknown
+): Snapshot => {
+  const programs = asArray<any>(programsInput);
+  const expenses = asArray<any>(expensesInput);
+  const budgets = asArray<any>(budgetsInput);
+  const donations = asArray<any>(donationsInput);
+  const sponsorships = asArray<any>(sponsorshipsInput);
+
+  const monthlyPrograms = programs.filter((p) => overlapsMonth(p?.startDate, p?.endDate, month));
+  const monthlyExpenses = expenses.filter((e) => inMonth(e?.date, month));
+  const monthlyDonations = donations.filter((d) => inMonth(d?.date, month));
+  const monthlySponsorships = sponsorships.filter((s) => overlapsMonth(s?.startDate, s?.endDate, month));
+
+  const totalBudget =
+    budgets.reduce((sum, b) => sum + Number(b?.amount || 0), 0) ||
+    monthlyPrograms.reduce((sum, p) => sum + Number(p?.budget || 0), 0);
+
+  const totalSpent =
+    monthlyExpenses
+      .filter((e) => e?.status === 'approved')
+      .reduce((sum, e) => sum + Number(e?.amount || 0), 0) ||
+    monthlyPrograms.reduce((sum, p) => sum + Number(p?.spent || 0), 0);
+
+  const monthlyDonationsTotal = monthlyDonations
+    .filter((d) => d?.status === 'received')
+    .reduce((sum, d) => sum + Number(d?.amount || 0), 0);
+
+  const monthlyDonorsCount = new Set(monthlyDonations.map((d) => d?.donorId).filter(Boolean)).size;
+
+  return {
+    month,
+    totalBudget,
+    totalSpent,
+    programsCount: monthlyPrograms.length,
+    beneficiariesReached: monthlyPrograms.reduce((sum, p) => sum + Number(p?.beneficiaries || 0), 0),
+    activePrograms: monthlyPrograms.filter((p) => p?.status === 'active').length,
+    pendingExpenses: monthlyExpenses.filter((e) => e?.status === 'pending').length,
+    monthlyDonationsTotal,
+    monthlyDonationsCount: monthlyDonations.length,
+    monthlyDonorsCount,
+    activeSponsorships: monthlySponsorships.filter((s) => s?.status === 'active').length,
+    monthlySponsorshipAmount: monthlySponsorships.reduce((sum, s) => sum + Number(s?.amount || 0), 0)
+  };
+};
+
+const buildSummary = (type: ReportType, snapshot: Snapshot) => {
+  const period = formatMonthLabel(snapshot.month);
+  const utilization = snapshot.totalBudget > 0 ? ((snapshot.totalSpent / snapshot.totalBudget) * 100).toFixed(1) : '0.0';
+
+  if (type === 'program') {
+    return `${period}: ${snapshot.activePrograms} active programs of ${snapshot.programsCount} total, reaching ${snapshot.beneficiariesReached.toLocaleString()} beneficiaries.`;
+  }
+
+  if (type === 'financial') {
+    return `${period}: Spending is $${snapshot.totalSpent.toLocaleString()} against $${snapshot.totalBudget.toLocaleString()} budget (${utilization}% utilization), with ${snapshot.pendingExpenses} pending expenses.`;
+  }
+
+  if (type === 'donor') {
+    return `${period}: ${snapshot.monthlyDonorsCount} active donors contributed this month; received donations totaled $${snapshot.monthlyDonationsTotal.toLocaleString()}.`;
+  }
+
+  if (type === 'donation') {
+    return `${period}: ${snapshot.monthlyDonationsCount} donation transactions were logged, totaling $${snapshot.monthlyDonationsTotal.toLocaleString()} received.`;
+  }
+
+  return `${period}: ${snapshot.activeSponsorships} active sponsorships with $${snapshot.monthlySponsorshipAmount.toLocaleString()} committed value were tracked.`;
+};
+
 export const ReportsPage = () => {
-  const [activeTab, setActiveTab] = useState('view');
+  const [activeTab, setActiveTab] = useState<'view' | 'generate' | 'details'>('view');
   const [reports, setReports] = useState<Report[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
+  const [donors, setDonors] = useState<any[]>([]);
+  const [donations, setDonations] = useState<any[]>([]);
+  const [sponsorships, setSponsorships] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [formData, setFormData] = useState<ReportForm>({
     title: '',
-    type: 'financial',
-    period: '',
+    type: 'program',
+    periodMonth: '',
     summary: ''
   });
-  const { content } = useContent();
 
   useEffect(() => {
     fetchData();
@@ -50,76 +193,100 @@ export const ReportsPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [reportsData, programsData, expensesData, budgetsData] = await Promise.all([
+      const [reportsData, programsData, expensesData, budgetsData, donorsData, donationsData, sponsorshipsData] = await Promise.all([
         reportAPI.getAll(),
         programAPI.getAll(),
         expenseAPI.getAll(),
-        budgetAPI.getAll()
+        budgetAPI.getAll(),
+        donorAPI.getAll(),
+        donationAPI.getAll(),
+        sponsorshipAPI.getAll()
       ]);
-      setReports(reportsData);
-      setPrograms(programsData);
-      setExpenses(expensesData);
-      setBudgets(budgetsData);
+
+      setReports(asArray<Report>(reportsData));
+      setPrograms(asArray(programsData));
+      setExpenses(asArray(expensesData));
+      setBudgets(asArray(budgetsData));
+      setDonors(asArray(donorsData));
+      setDonations(asArray(donationsData));
+      setSponsorships(asArray(sponsorshipsData));
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch data');
-      console.error('Error fetching data:', err);
+      setError(err.message || 'Failed to fetch report data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // Calculate totals from existing data
-      const totalBudget = programs.reduce((sum: number, p: any) => sum + (p.budget || 0), 0);
-      const totalSpent = programs.reduce((sum: number, p: any) => sum + (p.spent || 0), 0);
-      const programsCount = programs.length;
-      const beneficiariesReached = programs.reduce((sum: number, p: any) => sum + (p.beneficiaries || 0), 0);
-
-      if (editingId) {
-        // Update existing report
-        const report = reports.find(r => r.id === editingId);
-        const updatedReport = {
-          ...formData,
-          generatedDate: report?.generatedDate || new Date().toISOString().split('T')[0],
-          totalBudget,
-          totalSpent,
-          programsCount,
-          beneficiariesReached
-        };
-        await reportAPI.update(editingId, updatedReport);
-        setEditingId(null);
-      } else {
-        // Create new report
-        const newReport = {
-          id: `R${String(reports.length + 1).padStart(3, '0')}`,
-          ...formData,
-          generatedDate: new Date().toISOString().split('T')[0],
-          totalBudget,
-          totalSpent,
-          programsCount,
-          beneficiariesReached
-        };
-        await reportAPI.create(newReport);
-      }
-      
-      await fetchData();
-      setFormData({
-        title: '',
-        type: 'financial',
-        period: '',
-        summary: ''
-      });
-      setActiveTab('view');
-    } catch (err: any) {
-      setError(err.message || `Failed to ${editingId ? 'update' : 'create'} report`);
+  useEffect(() => {
+    if (activeTab !== 'generate') return;
+    if (!formData.periodMonth) {
+      if (formData.summary) setFormData((prev) => ({ ...prev, summary: '' }));
+      return;
     }
-  };
+
+    const snapshot = buildSnapshot(
+      formData.periodMonth,
+      programs,
+      expenses,
+      budgets,
+      donations,
+      sponsorships
+    );
+
+    const nextSummary = buildSummary(formData.type, snapshot);
+    if (nextSummary !== formData.summary) {
+      setFormData((prev) => ({ ...prev, summary: nextSummary }));
+    }
+  }, [activeTab, formData.type, formData.periodMonth, formData.summary, programs, expenses, budgets, donations, sponsorships]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (!formData.periodMonth) {
+        throw new Error('Please select a month');
+      }
+
+      const snapshot = buildSnapshot(
+        formData.periodMonth,
+        programs,
+        expenses,
+        budgets,
+        donations,
+        sponsorships
+      );
+
+      const payload = {
+        title: formData.title,
+        type: formData.type,
+        period: formData.periodMonth,
+        summary: buildSummary(formData.type, snapshot),
+        totalBudget: snapshot.totalBudget,
+        totalSpent: snapshot.totalSpent,
+        programsCount: snapshot.programsCount,
+        beneficiariesReached: snapshot.beneficiariesReached,
+        generatedDate: new Date().toISOString().split('T')[0]
+      };
+
+      if (editingId) {
+        await reportAPI.update(editingId, payload);
+        setEditingId(null);
+      } else {
+        const reportId = `R${String(reports.length + 1).padStart(3, '0')}`;
+        await reportAPI.create({ id: reportId, ...payload });
+      }
+
+      await fetchData();
+      setFormData({ title: '', type: 'program', periodMonth: '', summary: '' });
+      setActiveTab('view');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save report');
+    }
   };
 
   const handleEdit = (report: Report) => {
@@ -127,7 +294,7 @@ export const ReportsPage = () => {
     setFormData({
       title: report.title,
       type: report.type,
-      period: report.period,
+      periodMonth: report.period,
       summary: report.summary
     });
     setActiveTab('generate');
@@ -135,56 +302,46 @@ export const ReportsPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this report?')) return;
-    
     try {
       await reportAPI.delete(id);
       await fetchData();
     } catch (err: any) {
-      console.error('Error deleting report:', err);
       setError(err.message || 'Failed to delete report');
-      alert(`Error: ${err.message || 'Failed to delete report'}`);
     }
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setFormData({
-      title: '',
-      type: 'financial',
-      period: '',
-      summary: ''
-    });
+    setFormData({ title: '', type: 'program', periodMonth: '', summary: '' });
   };
 
-  const reportTypes = content?.reports?.types || [];
-  const filterByType = (type: string) => reports.filter(r => r.type === type);
+  const filteredByType = (type: ReportType) => reports.filter((r) => r.type === type);
 
-  const viewReportDetails = (report: Report) => {
-    setSelectedReport(report);
-    setActiveTab('details');
-  };
+  const selectedMonthExpenses = selectedReport
+    ? expenses.filter((expense) => inMonth(expense?.date, selectedReport.period))
+    : [];
+  const selectedMonthPrograms = selectedReport
+    ? programs.filter((program) => overlapsMonth(program?.startDate, program?.endDate, selectedReport.period))
+    : [];
+  const selectedMonthDonations = selectedReport
+    ? donations.filter((donation) => inMonth(donation?.date, selectedReport.period))
+    : [];
+  const selectedMonthSponsorships = selectedReport
+    ? sponsorships.filter((sponsorship) => overlapsMonth(sponsorship?.startDate, sponsorship?.endDate, selectedReport.period))
+    : [];
 
   return (
     <div className="tabbed-page">
       <div className="tab-navigation">
-        <button 
-          className={`tab ${activeTab === 'view' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('view'); setSelectedReport(null); }}
-        >
+        <button className={`tab ${activeTab === 'view' ? 'active' : ''}`} onClick={() => { setActiveTab('view'); setSelectedReport(null); }}>
           All Reports
         </button>
         {selectedReport && (
-          <button 
-            className={`tab ${activeTab === 'details' ? 'active' : ''}`}
-            onClick={() => setActiveTab('details')}
-          >
-            📊 {selectedReport.title}
+          <button className={`tab ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>
+            {selectedReport.title}
           </button>
         )}
-        <button 
-          className={`tab ${activeTab === 'generate' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('generate'); setSelectedReport(null); }}
-        >
+        <button className={`tab ${activeTab === 'generate' ? 'active' : ''}`} onClick={() => { setActiveTab('generate'); setSelectedReport(null); }}>
           + Generate Report
         </button>
         <Link to="/home" className="home-button">Home</Link>
@@ -196,15 +353,12 @@ export const ReportsPage = () => {
 
         {!loading && activeTab === 'view' && (
           <div className="form-layout">
-            <div style={{ backgroundColor: 'red', color: 'white', padding: '1rem', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-              🔴 DEBUG: If you see this, the ReportsPage code is loading correctly!
-            </div>
             <h2>All Reports</h2>
             <div style={{ overflowX: 'auto', width: '100%' }}>
               <table className="data-table" style={{ width: '100%', tableLayout: 'auto' }}>
                 <thead>
                   <tr>
-                    <th style={{ minWidth: '200px', maxWidth: '250px', backgroundColor: '#2196F3', color: 'white', fontWeight: 'bold' }}>⚡ ACTIONS</th>
+                    <th>Actions</th>
                     <th>Report Title</th>
                     <th>Type</th>
                     <th>Period</th>
@@ -213,248 +367,209 @@ export const ReportsPage = () => {
                     <th>Total Spent</th>
                     <th>Programs</th>
                     <th>Beneficiaries</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: 'center' }}>No reports found</td>
                   </tr>
-                ) : (
-                  reports.map((report) => (
-                    <tr key={report.id}>
-                      <td style={{ backgroundColor: '#fff3cd', padding: '1rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', visibility: 'visible' }}>
-                          <button 
-                            className="edit-btn"
-                            onClick={() => viewReportDetails(report)}
-                            style={{
-                              display: 'inline-block !important',
-                              padding: '0.6rem 1rem !important',
-                              backgroundColor: '#4CAF50 !important',
-                              color: 'white !important',
-                              border: '3px solid #000 !important',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '1rem !important',
-                              fontWeight: 'bold !important'
-                            }}
-                          >
-                            👁️ VIEW
-                          </button>
-                          <button 
-                            className="edit-btn"
-                            onClick={() => handleEdit(report)}
-                            style={{
-                              display: 'inline-block !important',
-                              padding: '0.6rem 1rem !important',
-                              backgroundColor: '#2196F3 !important',
-                              color: 'white !important',
-                              border: '3px solid #000 !important',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '1rem !important',
-                              fontWeight: 'bold !important'
-                            }}
-                          >
-                            ✏️ EDIT
-                          </button>
-                          <button 
-                            className="delete-btn"
-                            onClick={() => handleDelete(report.id)}
-                            style={{
-                              display: 'inline-block !important',
-                              padding: '0.6rem 1rem !important',
-                              backgroundColor: '#f44336 !important',
-                              color: 'white !important',
-                              border: '3px solid #000 !important',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '1rem !important',
-                              fontWeight: 'bold !important'
-                            }}
-                          >
-                            🗑️ DELETE
-                          </button>
-                        </div>
-                      </td>
-                      <td>{report.title}</td>
-                      <td><span className="category-badge">{report.type}</span></td>
-                      <td>{report.period}</td>
-                      <td>{new Date(report.generatedDate).toLocaleDateString()}</td>
-                      <td>${report.totalBudget.toLocaleString()}</td>
-                      <td>${report.totalSpent.toLocaleString()}</td>
-                      <td>{report.programsCount}</td>
-                      <td>{report.beneficiariesReached}</td>
+                </thead>
+                <tbody>
+                  {reports.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center' }}>No reports found</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    reports.map((report) => (
+                      <tr key={report.id}>
+                        <td>
+                          <button className="edit-btn" onClick={() => { setSelectedReport(report); setActiveTab('details'); }}>View</button>{' '}
+                          <button className="edit-btn" onClick={() => handleEdit(report)}>Edit</button>{' '}
+                          <button className="delete-btn" onClick={() => handleDelete(report.id)}>Delete</button>
+                        </td>
+                        <td>{report.title}</td>
+                        <td><span className="category-badge">{report.type}</span></td>
+                        <td>{formatMonthLabel(report.period)}</td>
+                        <td>{new Date(report.generatedDate).toLocaleDateString()}</td>
+                        <td>${Number(report.totalBudget || 0).toLocaleString()}</td>
+                        <td>${Number(report.totalSpent || 0).toLocaleString()}</td>
+                        <td>{report.programsCount}</td>
+                        <td>{report.beneficiariesReached}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            {reportTypes.length > 0 && (
-              <div style={{ marginTop: '3rem' }}>
-                <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Reports by Type</h3>
-                {reportTypes.map((type: any) => {
-                  const typeReports = filterByType(type.value);
-                  if (typeReports.length === 0) return null;
-
-                  return (
-                    <div key={type.value} style={{ marginBottom: '2rem' }}>
-                      <h4 style={{ color: '#2196F3', marginBottom: '0.5rem' }}>
-                        {type.icon} {type.label} ({typeReports.length})
-                      </h4>
-                      <ul style={{ color: '#fff', listStyle: 'none', padding: 0 }}>
-                        {typeReports.map(report => (
-                          <li key={report.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid #333' }}>
-                            {report.title} - {report.period}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div style={{ marginTop: '2rem' }}>
+              <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Reports by Type</h3>
+              {reportTypeOptions.map((type) => {
+                const list = filteredByType(type.value);
+                if (list.length === 0) return null;
+                return (
+                  <div key={type.value} style={{ marginBottom: '0.5rem', color: '#9bd0ff' }}>
+                    {type.label} ({list.length})
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {activeTab === 'details' && selectedReport && (
           <div className="form-layout">
-            <div style={{ marginBottom: '2rem' }}>
-              <h2>{selectedReport.title}</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', padding: '1rem', backgroundColor: '#1e1e1e', borderRadius: '8px', marginTop: '1rem' }}>
-                <div style={{ color: '#fff' }}>
-                  <strong>Type:</strong> <span className="category-badge">{selectedReport.type}</span>
-                </div>
-                <div style={{ color: '#fff' }}>
-                  <strong>Period:</strong> {selectedReport.period}
-                </div>
-                <div style={{ color: '#fff' }}>
-                  <strong>Generated:</strong> {new Date(selectedReport.generatedDate).toLocaleDateString()}
-                </div>
-                <div style={{ color: '#fff' }}>
-                  <strong>Total Budget:</strong> ${selectedReport.totalBudget.toLocaleString()}
-                </div>
-                <div style={{ color: '#fff' }}>
-                  <strong>Total Spent:</strong> ${selectedReport.totalSpent.toLocaleString()}
-                </div>
-                <div style={{ color: '#fff' }}>
-                  <strong>Programs:</strong> {selectedReport.programsCount}
-                </div>
-              </div>
-              <div style={{ padding: '1rem', backgroundColor: '#1e1e1e', borderRadius: '8px', marginTop: '1rem' }}>
-                <strong style={{ color: '#fff' }}>Summary:</strong>
-                <p style={{ color: '#ccc', marginTop: '0.5rem' }}>{selectedReport.summary}</p>
-              </div>
-            </div>
+            <h2>{selectedReport.title}</h2>
+            <p style={{ color: '#bbb' }}>{formatMonthLabel(selectedReport.period)} | {selectedReport.type}</p>
+            <p style={{ color: '#ddd' }}>{selectedReport.summary}</p>
 
-            <h3 style={{ color: '#fff', marginTop: '2rem', marginBottom: '1rem' }}>
-              {selectedReport.type === 'financial' ? '💰 Expenses' : 
-               selectedReport.type === 'program' ? '📋 Programs' :
-               selectedReport.type === 'donor' ? '💝 Donor Budgets' :
-               '📊 Data'}
-            </h3>
+            {selectedReport.type === 'program' && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Budget</th>
+                    <th>Spent</th>
+                    <th>Beneficiaries</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedMonthPrograms.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No program records for this month</td></tr>
+                  ) : (
+                    selectedMonthPrograms.map((program) => (
+                      <tr key={program.id}>
+                        <td>{program.id}</td>
+                        <td>{program.name}</td>
+                        <td>${Number(program.budget || 0).toLocaleString()}</td>
+                        <td>${Number(program.spent || 0).toLocaleString()}</td>
+                        <td>{Number(program.beneficiaries || 0).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
 
-            {selectedReport.type === 'financial' || selectedReport.type === 'quarterly' || selectedReport.type === 'annual' ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th>Amount</th>
-                      <th>Program</th>
-                      <th>Status</th>
-                      <th>Vendor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.length === 0 ? (
-                      <tr><td colSpan={7} style={{ textAlign: 'center' }}>No expenses found</td></tr>
-                    ) : (
-                      expenses.map((expense: any) => (
-                        <tr key={expense.id}>
-                          <td>{new Date(expense.date).toLocaleDateString()}</td>
-                          <td>{expense.description}</td>
-                          <td><span className="category-badge">{expense.category}</span></td>
-                          <td className="amount-cell">${expense.amount.toLocaleString()}</td>
-                          <td>{expense.programName}</td>
-                          <td><span className={`status-badge status-${expense.status}`}>{expense.status}</span></td>
-                          <td>{expense.vendor || '-'}</td>
+            {selectedReport.type === 'financial' && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Program</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedMonthExpenses.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No expense records for this month</td></tr>
+                  ) : (
+                    selectedMonthExpenses.map((expense) => (
+                      <tr key={expense.id}>
+                        <td>{new Date(expense.date).toLocaleDateString()}</td>
+                        <td>{expense.description}</td>
+                        <td>{expense.programName}</td>
+                        <td>${Number(expense.amount || 0).toLocaleString()}</td>
+                        <td>{expense.status}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {selectedReport.type === 'donor' && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Donor</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Country</th>
+                    <th>Monthly Donations</th>
+                    <th>Monthly Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donors.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center' }}>No donor records found</td></tr>
+                  ) : (
+                    donors.map((donor) => {
+                      const donorMonth = selectedMonthDonations.filter((d) => d.donorId === donor.id);
+                      const donorTotal = donorMonth.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+                      return (
+                        <tr key={donor.id}>
+                          <td>{donor.fullName}</td>
+                          <td>{donor.type}</td>
+                          <td>{donor.status}</td>
+                          <td>{donor.country || '-'}</td>
+                          <td>{donorMonth.length}</td>
+                          <td>${donorTotal.toLocaleString()}</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : selectedReport.type === 'program' ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Program Name</th>
-                      <th>Description</th>
-                      <th>Budget</th>
-                      <th>Spent</th>
-                      <th>Location</th>
-                      <th>Beneficiaries</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {programs.length === 0 ? (
-                      <tr><td colSpan={7} style={{ textAlign: 'center' }}>No programs found</td></tr>
-                    ) : (
-                      programs.map((program: any) => (
-                        <tr key={program.id}>
-                          <td>{program.id}</td>
-                          <td>{program.name}</td>
-                          <td>{program.description}</td>
-                          <td className="amount-cell">${program.budget?.toLocaleString() || 0}</td>
-                          <td className="amount-cell">${program.spent?.toLocaleString() || 0}</td>
-                          <td>{program.location || '-'}</td>
-                          <td>{program.beneficiaries?.toLocaleString() || 0}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : selectedReport.type === 'donor' ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Category</th>
-                      <th>Allocated</th>
-                      <th>Spent</th>
-                      <th>Remaining</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {budgets.length === 0 ? (
-                      <tr><td colSpan={6} style={{ textAlign: 'center' }}>No budget data found</td></tr>
-                    ) : (
-                      budgets.map((budget: any) => (
-                        <tr key={budget.id}>
-                          <td>{budget.id}</td>
-                          <td><span className="category-badge">{budget.category}</span></td>
-                          <td className="amount-cell">${budget.allocated?.toLocaleString() || 0}</td>
-                          <td className="amount-cell">${budget.spent?.toLocaleString() || 0}</td>
-                          <td className="amount-cell">${(budget.allocated - budget.spent)?.toLocaleString() || 0}</td>
-                          <td><span className={`status-badge`}>{budget.status || 'active'}</span></td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {selectedReport.type === 'donation' && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Donor</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedMonthDonations.length === 0 ? (
+                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No donation records for this month</td></tr>
+                  ) : (
+                    selectedMonthDonations.map((donation) => (
+                      <tr key={donation.id}>
+                        <td>{new Date(donation.date).toLocaleDateString()}</td>
+                        <td>{donation.donorName}</td>
+                        <td>${Number(donation.amount || 0).toLocaleString()}</td>
+                        <td>{donation.method}</td>
+                        <td>{donation.status}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {selectedReport.type === 'sponsorship' && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Donor</th>
+                    <th>Candidate</th>
+                    <th>Program</th>
+                    <th>Amount</th>
+                    <th>Frequency</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedMonthSponsorships.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center' }}>No sponsorship records for this month</td></tr>
+                  ) : (
+                    selectedMonthSponsorships.map((s) => (
+                      <tr key={s.id}>
+                        <td>{s.donorName}</td>
+                        <td>{s.girlName}</td>
+                        <td>{s.program}</td>
+                        <td>${Number(s.amount || 0).toLocaleString()}</td>
+                        <td>{s.frequency}</td>
+                        <td>{s.status}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
@@ -462,95 +577,33 @@ export const ReportsPage = () => {
           <div className="form-layout">
             <h2>{editingId ? 'Edit Report' : 'Generate New Report'}</h2>
             {editingId && (
-              <button 
-                type="button" 
-                onClick={handleCancelEdit}
-                style={{ marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#666', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-              >
+              <button type="button" onClick={handleCancelEdit} style={{ marginBottom: '1rem' }}>
                 Cancel Edit
               </button>
             )}
             <form className="excel-form" onSubmit={handleSubmit}>
               <div className="form-row">
                 <label>Report Title:</label>
-                <input 
-                  type="text" 
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Enter report title" 
-                  required
-                />
+                <input type="text" name="title" value={formData.title} onChange={handleInputChange} required />
               </div>
               <div className="form-row">
                 <label>Report Type:</label>
-                <select 
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  required
-                >
-                  {reportTypes.length > 0 ? (
-                    reportTypes.map((type: any) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="financial">Financial</option>
-                      <option value="program">Program</option>
-                      <option value="donor">Donor</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="annual">Annual</option>
-                    </>
-                  )}
+                <select name="type" value={formData.type} onChange={handleInputChange} required>
+                  {reportTypeOptions.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-row">
-                <label>Period:</label>
-                <input 
-                  type="text" 
-                  name="period"
-                  value={formData.period}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Q1 2026, Jan-Mar 2026" 
-                  required
-                />
+                <label>Month:</label>
+                <input type="month" name="periodMonth" value={formData.periodMonth} onChange={handleInputChange} required />
               </div>
               <div className="form-row">
                 <label>Summary:</label>
-                <textarea 
-                  name="summary"
-                  value={formData.summary}
-                  onChange={handleInputChange}
-                  placeholder="Enter report summary..."
-                  required
-                  rows={5}
-                />
+                <textarea name="summary" value={formData.summary} readOnly rows={5} required />
               </div>
               <button type="submit" className="submit-btn">{editingId ? 'Update Report' : 'Generate Report'}</button>
             </form>
-
-            {programs.length > 0 && (
-              <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#1e1e1e', borderRadius: '8px' }}>
-                <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Current Statistics</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', color: '#fff' }}>
-                  <div>
-                    <strong>Total Programs:</strong> {programs.length}
-                  </div>
-                  <div>
-                    <strong>Total Budget:</strong> ${programs.reduce((sum: number, p: any) => sum + (p.budget || 0), 0).toLocaleString()}
-                  </div>
-                  <div>
-                    <strong>Total Spent:</strong> ${programs.reduce((sum: number, p: any) => sum + (p.spent || 0), 0).toLocaleString()}
-                  </div>
-                  <div>
-                    <strong>Total Beneficiaries:</strong> {programs.reduce((sum: number, p: any) => sum + (p.beneficiaries || 0), 0).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

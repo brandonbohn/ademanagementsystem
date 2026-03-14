@@ -36,12 +36,13 @@ export interface Expense {
   receipt: string;
   approvedBy: string;
   status: 'pending' | 'approved' | 'rejected';
+  vendor?: string;
 }
 
 export interface Report {
   id: string;
   title: string;
-  type: 'financial' | 'program' | 'donor' | 'quarterly' | 'annual';
+  type: 'program' | 'financial' | 'donor' | 'donation' | 'sponsorship' | 'quarterly' | 'annual';
   period: string;
   generatedDate: string;
   summary: string;
@@ -74,12 +75,24 @@ export interface Girl {
   id: string;
   firstName: string;
   lastName: string;
+  company?: string;
   dateOfBirth: string;
   school: string;
+  researchDate?: string;
+  deadlineDate?: string;
+  submissionDate?: string;
+  decisionDate?: string;
   program: string;
   status: 'active' | 'graduated' | 'inactive';
   sponsorshipStatus: 'sponsored' | 'partial' | 'unsponsored';
   sponsorId?: string;
+  timelineNotes?: string;
+  requirements?: Array<{
+    id: string;
+    item: string;
+    completed: boolean;
+    required: boolean;
+  }>;
   notes?: string;
 }
 
@@ -137,6 +150,35 @@ export interface Participant {
   guardianName?: string;
   phone?: string;
   location?: string;
+  notes?: string;
+}
+
+export interface GrantRequirement {
+  id: string;
+  label: string;
+  completed: boolean;
+  dueDate?: string;
+}
+
+export interface Grant {
+  id: string;
+  title: string;
+  funder: string;
+  company?: string;
+  sourceUrl?: string;
+  researchDate?: string;
+  deadline?: string;
+  nextActionDate?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  amountAwarded: number;
+  amountReceived: number;
+  startDate: string;
+  endDate: string;
+  status: 'pipeline' | 'approved' | 'active' | 'closed';
+  purpose: string;
+  requirements?: GrantRequirement[];
   notes?: string;
 }
 

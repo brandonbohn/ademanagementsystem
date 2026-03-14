@@ -12,8 +12,12 @@ interface DashboardProps {
 
 export const Dashboard = ({ budgets, programs, expenses, reports }: DashboardProps) => {
   const { content } = useContent();
+  const hiddenRoutes = new Set(['/participants', '/girls', '/sponsorships']);
+  const isExternalUrl = (value: string) => /^https?:\/\//i.test(value);
   const mergeMenuItems = (configured: any[] | undefined, defaults: any[]) => {
-    const merged = [...(Array.isArray(configured) ? configured : [])];
+    const merged = (Array.isArray(configured) ? configured : []).filter(
+      (item) => !hiddenRoutes.has(item.route)
+    );
     const existingRoutes = new Set(merged.map((item) => item.route));
 
     defaults.forEach((item) => {
@@ -27,11 +31,11 @@ export const Dashboard = ({ budgets, programs, expenses, reports }: DashboardPro
 
   const defaultQuickActions = [
     { id: 'donors', route: '/donors', icon: '🤝', label: 'Donor List', description: 'View and manage donor records' },
-    { id: 'participants', route: '/participants', icon: '🧒', label: 'Participant List', description: 'Track all program participants' },
-    { id: 'girls', route: '/girls', icon: '👧', label: 'Sponsorship Candidates', description: 'Manage participants awaiting sponsorship' },
-    { id: 'team', route: '/team', icon: '🧑‍🤝‍🧑', label: 'Employee / Volunteer List', description: 'Manage workforce and volunteers' },
+    { id: 'team', route: '/team', icon: '🧑‍🤝‍🧑', label: 'Team', description: 'Manage workforce and volunteers' },
     { id: 'donations', route: '/donations', icon: '💰', label: 'Donations', description: 'Track payments and receipts' },
-    { id: 'sponsorships', route: '/sponsorships', icon: '💞', label: 'Sponsorships', description: 'Manage donor-to-girl relationships' }
+    { id: 'grants', route: '/grants', icon: '📜', label: 'Grant Tracking', description: 'Track grant pipeline, awards, and utilization' },
+    { id: 'website', route: 'https://adekiberafoundation.org', icon: '🌐', label: 'Website', description: 'Open ADE Kibera Foundation website' },
+    { id: 'website-editor', route: 'https://adekiberafoundation.org/wp-admin', icon: '🛠️', label: 'Website Editor', description: 'Open website admin/editor page' },
   ];
   // Calculate totals
   const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
@@ -55,11 +59,19 @@ export const Dashboard = ({ budgets, programs, expenses, reports }: DashboardPro
           <h2>Quick Actions</h2>
           <div className="action-buttons">
             {quickActions.map((action: any) => (
-              <Link key={action.id} to={action.route} className="action-btn">
-                <span className="action-icon">{action.icon}</span>
-                <span className="action-label">{action.label}</span>
-                <span className="action-description">{action.description}</span>
-              </Link>
+              isExternalUrl(action.route) ? (
+                <a key={action.id} href={action.route} className="action-btn" target="_blank" rel="noreferrer">
+                  <span className="action-icon">{action.icon}</span>
+                  <span className="action-label">{action.label}</span>
+                  <span className="action-description">{action.description}</span>
+                </a>
+              ) : (
+                <Link key={action.id} to={action.route} className="action-btn">
+                  <span className="action-icon">{action.icon}</span>
+                  <span className="action-label">{action.label}</span>
+                  <span className="action-description">{action.description}</span>
+                </Link>
+              )
             ))}
           </div>
         </div>

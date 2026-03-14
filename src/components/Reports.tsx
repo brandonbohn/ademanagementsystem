@@ -98,12 +98,13 @@ export const Reports = ({ reports, onEdit, onDelete, onRefresh }: ReportsProps) 
           {selectedReport.type === 'financial' ? '💰 Expenses' : 
            selectedReport.type === 'program' ? '📋 Programs' :
            selectedReport.type === 'donor' ? '💝 Donor Budgets' :
-           '📊 Data'}
+           selectedReport.type === 'donation' ? '💸 Donations' :
+           '🤝 Sponsorships'}
         </h2>
 
         {loading ? (
           <p style={{ color: '#fff', textAlign: 'center' }}>Loading data...</p>
-        ) : selectedReport.type === 'financial' || selectedReport.type === 'quarterly' || selectedReport.type === 'annual' ? (
+        ) : selectedReport.type === 'financial' ? (
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table" style={{ width: '100%', backgroundColor: '#1a1a1a', color: '#fff' }}>
               <thead>

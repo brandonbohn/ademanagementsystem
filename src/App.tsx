@@ -15,6 +15,9 @@ import { SponsorshipsPage } from './pages/SponsorshipsPage';
 import { DonationsPage } from './pages/DonationsPage';
 import { TeamPage } from './pages/TeamPage';
 import { ParticipantsPage } from './pages/ParticipantsPage';
+import { SponsorshipProgramPage } from './pages/SponsorshipProgramPage';
+import { ProgramDashboardPage } from './pages/ProgramDashboardPage';
+import { GrantsPage } from './pages/GrantsPage';
 
 function App() {
   return (
@@ -27,6 +30,8 @@ function App() {
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
+          <Route path="/programs/sponsorship" element={<SponsorshipProgramPage />} />
+          <Route path="/programs/:id/dashboard" element={<ProgramDashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/donors" element={<DonorsPage />} />
           <Route path="/girls" element={<GirlsPage />} />
@@ -34,6 +39,7 @@ function App() {
           <Route path="/sponsorships" element={<SponsorshipsPage />} />
           <Route path="/donations" element={<DonationsPage />} />
           <Route path="/team" element={<TeamPage />} />
+          <Route path="/grants" element={<GrantsPage />} />
         </Routes>
       </Router>
     </ContentProvider>

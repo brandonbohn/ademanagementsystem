@@ -4,9 +4,13 @@ import './Home.css';
 
 export const Home = () => {
   const { content, loading } = useContent();
+  const hiddenRoutes = new Set(['/participants', '/girls', '/sponsorships']);
+  const isExternalUrl = (value: string) => /^https?:\/\//i.test(value);
 
   const mergeMenuItems = (configured: any[] | undefined, defaults: any[]) => {
-    const merged = [...(Array.isArray(configured) ? configured : [])];
+    const merged = (Array.isArray(configured) ? configured : []).filter(
+      (item) => !hiddenRoutes.has(item.route)
+    );
     const existingRoutes = new Set(merged.map((item) => item.route));
 
     defaults.forEach((item) => {
@@ -40,11 +44,11 @@ export const Home = () => {
     { id: 'expenses', route: '/expenses', icon: '💸', label: 'Expenses' },
     { id: 'reports', route: '/reports', icon: '📑', label: 'Reports' },
     { id: 'donors', route: '/donors', icon: '🤝', label: 'Donor List' },
-    { id: 'participants', route: '/participants', icon: '🧒', label: 'Participant List' },
-    { id: 'girls', route: '/girls', icon: '👧', label: 'Sponsorship Candidates' },
-    { id: 'sponsorships', route: '/sponsorships', icon: '💞', label: 'Sponsorships' },
     { id: 'donations', route: '/donations', icon: '💰', label: 'Donations' },
-    { id: 'team', route: '/team', icon: '🧑‍🤝‍🧑', label: 'Employee / Volunteer List' }
+    { id: 'grants', route: '/grants', icon: '📜', label: 'Grant Tracking' },
+    { id: 'team', route: '/team', icon: '🧑‍🤝‍🧑', label: 'Team' },
+    { id: 'website', route: 'https://adekiberafoundation.org', icon: '🌐', label: 'Website' },
+    { id: 'website-editor', route: 'https://adekiberafoundation.org/wp-admin', icon: '🛠️', label: 'Website Editor' }
   ];
 
   const configuredMenuItems = content?.navigation?.mainMenu;
@@ -59,10 +63,17 @@ export const Home = () => {
       
       <div className="home-buttons">
         {menuItems.map((item: any) => (
-          <Link key={item.id} to={item.route} className="home-btn">
-            <span className="btn-icon">{item.icon}</span>
-            <span className="btn-text">{item.label}</span>
-          </Link>
+          isExternalUrl(item.route) ? (
+            <a key={item.id} href={item.route} className="home-btn" target="_blank" rel="noreferrer">
+              <span className="btn-icon">{item.icon}</span>
+              <span className="btn-text">{item.label}</span>
+            </a>
+          ) : (
+            <Link key={item.id} to={item.route} className="home-btn">
+              <span className="btn-icon">{item.icon}</span>
+              <span className="btn-text">{item.label}</span>
+            </Link>
+          )
         ))}
         
         <Link to="/" className="home-btn">

@@ -25,26 +25,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       console.error('Error fetching content:', err);
       setError(err.message || 'Failed to fetch content');
-      // Set default fallback content
-      setContent({
-        systemInfo: {
-          name: 'ADE Donor Management System',
-          tagline: 'Welcome to your management dashboard'
-        },
-        navigation: {
-          mainMenu: []
-        },
-        forms: {
-          common: {
-            submitButton: 'Submit',
-            cancelButton: 'Cancel',
-            saveButton: 'Save',
-            editButton: 'Edit',
-            deleteButton: 'Delete',
-            addButton: 'Add New'
-          }
-        }
-      });
+      setContent(null);
     } finally {
       setLoading(false);
     }
