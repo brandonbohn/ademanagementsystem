@@ -123,6 +123,20 @@ const parseBudgetLineItems = (description: string | undefined): BudgetLineItem[]
   }
 };
 
+const formatCurrency = (value: number) => `$${Number(value || 0).toLocaleString()}`;
+
+const downloadTextFile = (filename: string, content: string, mime = 'text/plain;charset=utf-8') => {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 const buildSnapshot = (
   month: string,
   programsInput: unknown,
@@ -211,6 +225,7 @@ export const ReportsPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [financialDurationMonths, setFinancialDurationMonths] = useState(6);
+  const [autoPrintOnGenerate, setAutoPrintOnGenerate] = useState(true);
   const [formData, setFormData] = useState<ReportForm>({
     title: '',
     type: 'program',
@@ -305,17 +320,31 @@ export const ReportsPage = () => {
         generatedDate: new Date().toISOString().split('T')[0]
       };
 
+      let savedReportId = editingId;
+
       if (editingId) {
         await reportAPI.update(editingId, payload);
         setEditingId(null);
       } else {
         const reportId = `R${Date.now().toString().slice(-6)}`;
         await reportAPI.create({ id: reportId, ...payload });
+        savedReportId = reportId;
       }
 
       await fetchData();
       setFormData({ title: '', type: 'program', periodMonth: '', summary: '' });
-      setActiveTab('view');
+
+      const nextReport: Report = {
+        id: String(savedReportId || `R${Date.now().toString().slice(-6)}`),
+        ...payload
+      };
+
+      setSelectedReport(nextReport);
+      setActiveTab('details');
+
+      if (autoPrintOnGenerate) {
+        setTimeout(() => window.print(), 120);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to save report');
     }
@@ -391,6 +420,76 @@ export const ReportsPage = () => {
   const variance = periodEstimatedTotal - periodActualTotal;
   const utilization = periodEstimatedTotal > 0 ? ((periodActualTotal / periodEstimatedTotal) * 100).toFixed(1) : '0.0';
 
+  const handlePrintCurrentReport = () => {
+    if (!selectedReport) return;
+    setTimeout(() => window.print(), 50);
+  };
+
+  const buildCurrentReportExportPayload = () => {
+    if (!selectedReport) return null;
+
+    const base = {
+      report: selectedReport,
+      generatedAt: new Date().toISOString(),
+      periodLabel: formatMonthLabel(selectedReport.period)
+    };
+
+    if (selectedReport.type === 'financial') {
+      return {
+        ...base,
+        metrics: {
+          estimatedMonthly: monthlyEstimated,
+          estimatedOneTime: oneTimeEstimated,
+          estimatedPeriodTotal: periodEstimatedTotal,
+          estimatedProgramTotal: annualizedEstimatedTotal,
+          actualApprovedTotal: periodActualTotal,
+          variance,
+          utilizationPercent: Number(utilization),
+          approvedCount: selectedMonthApprovedExpenses.length,
+          pendingCount: selectedMonthPendingExpenses.length
+        },
+        estimatedLineItems: financialLineItems,
+        actualExpenses: selectedMonthExpenses
+      };
+    }
+
+    if (selectedReport.type === 'program') {
+      return { ...base, rows: selectedMonthPrograms };
+    }
+
+    if (selectedReport.type === 'donor') {
+      return {
+        ...base,
+        rows: donors.map((donor) => {
+          const donorMonth = selectedMonthDonations.filter((d) => d.donorId === donor.id);
+          return {
+            id: donor.id,
+            fullName: donor.fullName,
+            type: donor.type,
+            status: donor.status,
+            country: donor.country || '-',
+            monthlyDonations: donorMonth.length,
+            monthlyTotal: donorMonth.reduce((sum, d) => sum + Number(d.amount || 0), 0)
+          };
+        })
+      };
+    }
+
+    if (selectedReport.type === 'donation') {
+      return { ...base, rows: selectedMonthDonations };
+    }
+
+    return { ...base, rows: selectedMonthSponsorships };
+  };
+
+  const handleExportCurrentReportJson = () => {
+    const payload = buildCurrentReportExportPayload();
+    if (!payload || !selectedReport) return;
+    const safeTitle = selectedReport.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const fileName = `${safeTitle || 'report'}-${selectedReport.period}.json`;
+    downloadTextFile(fileName, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+  };
+
   return (
     <div className="tabbed-page">
       <div className="tab-navigation">
@@ -440,6 +539,7 @@ export const ReportsPage = () => {
                       <tr key={report.id}>
                         <td>
                           <button className="edit-btn" onClick={() => { setSelectedReport(report); setActiveTab('details'); }}>View</button>{' '}
+                          <button className="edit-btn" onClick={() => { setSelectedReport(report); setActiveTab('details'); setTimeout(() => window.print(), 80); }}>Print</button>{' '}
                           <button className="edit-btn" onClick={() => handleEdit(report)}>Edit</button>{' '}
                           <button className="delete-btn" onClick={() => handleDelete(report.id)}>Delete</button>
                         </td>
@@ -478,6 +578,10 @@ export const ReportsPage = () => {
             <h2>{selectedReport.title}</h2>
             <p style={{ color: '#bbb' }}>{formatMonthLabel(selectedReport.period)} | {selectedReport.type}</p>
             <p style={{ color: '#ddd' }}>{selectedReport.summary}</p>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <button type="button" className="edit-btn" onClick={handlePrintCurrentReport}>Print / Save PDF</button>
+              <button type="button" className="edit-btn" onClick={handleExportCurrentReportJson}>Export JSON</button>
+            </div>
 
             {selectedReport.type === 'program' && (
               <table className="data-table">
@@ -531,16 +635,16 @@ export const ReportsPage = () => {
                 <div className="budget-summary" style={{ marginBottom: '1.25rem' }}>
                   <div className="summary-item">
                     <span>Estimated ({formatMonthLabel(selectedReport.period)}):</span>
-                    <span>${periodEstimatedTotal.toLocaleString()}</span>
+                    <span>{formatCurrency(periodEstimatedTotal)}</span>
                   </div>
                   <div className="summary-item">
                     <span>Actual Approved Spend:</span>
-                    <span>${periodActualTotal.toLocaleString()}</span>
+                    <span>{formatCurrency(periodActualTotal)}</span>
                   </div>
                   <div className="summary-item">
                     <span>Variance:</span>
                     <span style={{ color: variance >= 0 ? '#4caf50' : '#ff8a80' }}>
-                      {variance >= 0 ? '+' : '-'}${Math.abs(variance).toLocaleString()}
+                      {variance >= 0 ? '+' : '-'}{formatCurrency(Math.abs(variance))}
                     </span>
                   </div>
                   <div className="summary-item">
@@ -549,7 +653,7 @@ export const ReportsPage = () => {
                   </div>
                   <div className="summary-item">
                     <span>{financialDurationMonths}-Month Budget:</span>
-                    <span>${annualizedEstimatedTotal.toLocaleString()}</span>
+                    <span>{formatCurrency(annualizedEstimatedTotal)}</span>
                   </div>
                 </div>
 
@@ -743,6 +847,9 @@ export const ReportsPage = () => {
         {activeTab === 'generate' && (
           <div className="form-layout">
             <h2>{editingId ? 'Edit Report' : 'Generate New Report'}</h2>
+            <p style={{ color: '#bbb', marginBottom: '0.75rem' }}>
+              Generated reports are saved to this Reports center and can be printed or exported.
+            </p>
             {editingId && (
               <button type="button" onClick={handleCancelEdit} style={{ marginBottom: '1rem' }}>
                 Cancel Edit
@@ -768,6 +875,17 @@ export const ReportsPage = () => {
               <div className="form-row">
                 <label>Summary:</label>
                 <textarea name="summary" value={formData.summary} readOnly rows={5} required />
+              </div>
+              <div className="form-row" style={{ alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  id="autoPrintOnGenerate"
+                  type="checkbox"
+                  checked={autoPrintOnGenerate}
+                  onChange={(e) => setAutoPrintOnGenerate(e.target.checked)}
+                />
+                <label htmlFor="autoPrintOnGenerate" style={{ marginBottom: 0 }}>
+                  Automatically open Print dialog (Save as PDF) after generating report
+                </label>
               </div>
               <button type="submit" className="submit-btn">{editingId ? 'Update Report' : 'Generate Report'}</button>
             </form>
