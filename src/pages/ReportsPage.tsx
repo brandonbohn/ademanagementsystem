@@ -49,6 +49,16 @@ type Snapshot = {
   monthlySponsorshipAmount: number;
 };
 
+type BudgetLineItem = {
+  id: string;
+  category: string;
+  description: string;
+  detail?: string;
+  frequency: 'monthly' | 'one-time';
+  unitCost: number;
+  qty: number;
+};
+
 const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
   { value: 'program', label: 'Program Report (Monthly)' },
   { value: 'financial', label: 'Financial Report (Monthly)' },
@@ -90,6 +100,27 @@ const formatMonthLabel = (period: string) => {
   const date = new Date(Number(year), Number(month) - 1, 1);
   if (Number.isNaN(date.getTime())) return period;
   return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+};
+
+const parseBudgetLineItems = (description: string | undefined): BudgetLineItem[] => {
+  if (!description) return [];
+  try {
+    const parsed = JSON.parse(description);
+    if (!Array.isArray(parsed?.lineItems)) return [];
+    return parsed.lineItems
+      .map((item: any, index: number) => ({
+        id: String(item?.id || `line-${index + 1}`),
+        category: String(item?.category || 'General'),
+        description: String(item?.description || 'Untitled Line Item'),
+        detail: item?.detail ? String(item.detail) : undefined,
+        frequency: item?.frequency === 'one-time' ? 'one-time' : 'monthly',
+        unitCost: Number(item?.unitCost || 0),
+        qty: Number(item?.qty || 1)
+      }))
+      .filter((item: BudgetLineItem) => item.unitCost >= 0 && item.qty >= 0);
+  } catch {
+    return [];
+  }
 };
 
 const buildSnapshot = (
@@ -179,6 +210,7 @@ export const ReportsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [financialDurationMonths, setFinancialDurationMonths] = useState(6);
   const [formData, setFormData] = useState<ReportForm>({
     title: '',
     type: 'program',
@@ -277,7 +309,7 @@ export const ReportsPage = () => {
         await reportAPI.update(editingId, payload);
         setEditingId(null);
       } else {
-        const reportId = `R${String(reports.length + 1).padStart(3, '0')}`;
+        const reportId = `R${Date.now().toString().slice(-6)}`;
         await reportAPI.create({ id: reportId, ...payload });
       }
 
@@ -329,6 +361,35 @@ export const ReportsPage = () => {
   const selectedMonthSponsorships = selectedReport
     ? sponsorships.filter((sponsorship) => overlapsMonth(sponsorship?.startDate, sponsorship?.endDate, selectedReport.period))
     : [];
+
+  const selectedReportYear = selectedReport?.period ? Number(selectedReport.period.split('-')[0]) : new Date().getFullYear();
+  const selectedMonthApprovedExpenses = selectedMonthExpenses.filter((expense) => expense?.status === 'approved');
+  const selectedMonthPendingExpenses = selectedMonthExpenses.filter((expense) => expense?.status === 'pending');
+
+  const reportYearBudgets = selectedReport
+    ? budgets.filter((budget) => Number(budget?.year) === selectedReportYear)
+    : [];
+
+  const financialLineItems = reportYearBudgets.flatMap((budget) =>
+    parseBudgetLineItems(budget?.description).map((item) => ({
+      ...item,
+      budgetName: String(budget?.name || 'Unnamed Budget')
+    }))
+  );
+
+  const monthlyEstimated = financialLineItems
+    .filter((item) => item.frequency === 'monthly')
+    .reduce((sum, item) => sum + item.unitCost * item.qty, 0);
+
+  const oneTimeEstimated = financialLineItems
+    .filter((item) => item.frequency === 'one-time')
+    .reduce((sum, item) => sum + item.unitCost * item.qty, 0);
+
+  const periodEstimatedTotal = monthlyEstimated + oneTimeEstimated;
+  const annualizedEstimatedTotal = monthlyEstimated * financialDurationMonths + oneTimeEstimated;
+  const periodActualTotal = selectedMonthApprovedExpenses.reduce((sum, expense) => sum + Number(expense?.amount || 0), 0);
+  const variance = periodEstimatedTotal - periodActualTotal;
+  const utilization = periodEstimatedTotal > 0 ? ((periodActualTotal / periodEstimatedTotal) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="tabbed-page">
@@ -448,32 +509,138 @@ export const ReportsPage = () => {
             )}
 
             {selectedReport.type === 'financial' && (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Program</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedMonthExpenses.length === 0 ? (
-                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No expense records for this month</td></tr>
-                  ) : (
-                    selectedMonthExpenses.map((expense) => (
-                      <tr key={expense.id}>
-                        <td>{new Date(expense.date).toLocaleDateString()}</td>
-                        <td>{expense.description}</td>
-                        <td>{expense.programName}</td>
-                        <td>${Number(expense.amount || 0).toLocaleString()}</td>
-                        <td>{expense.status}</td>
+              <>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <label style={{ color: '#ddd' }}>
+                    Program Duration:&nbsp;
+                    <select
+                      value={financialDurationMonths}
+                      onChange={(e) => setFinancialDurationMonths(Number(e.target.value))}
+                      style={{ padding: '0.25rem 0.5rem' }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 9, 12].map((m) => (
+                        <option key={m} value={m}>{m} months</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="button" className="edit-btn" onClick={() => window.print()}>
+                    Print Report
+                  </button>
+                </div>
+
+                <div className="budget-summary" style={{ marginBottom: '1.25rem' }}>
+                  <div className="summary-item">
+                    <span>Estimated ({formatMonthLabel(selectedReport.period)}):</span>
+                    <span>${periodEstimatedTotal.toLocaleString()}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>Actual Approved Spend:</span>
+                    <span>${periodActualTotal.toLocaleString()}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>Variance:</span>
+                    <span style={{ color: variance >= 0 ? '#4caf50' : '#ff8a80' }}>
+                      {variance >= 0 ? '+' : '-'}${Math.abs(variance).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="summary-item">
+                    <span>Utilization:</span>
+                    <span>{utilization}%</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>{financialDurationMonths}-Month Budget:</span>
+                    <span>${annualizedEstimatedTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <h3 style={{ color: '#fff', marginBottom: '0.75rem' }}>Estimated Budget Line Items</h3>
+                <table className="data-table" style={{ marginBottom: '1.5rem' }}>
+                  <thead>
+                    <tr>
+                      <th>Budget</th>
+                      <th>Category</th>
+                      <th>Item</th>
+                      <th>Frequency</th>
+                      <th>Unit (KES)</th>
+                      <th>Qty</th>
+                      <th>Period Total (KES)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {financialLineItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center' }}>
+                          No structured line items found in budget descriptions for {selectedReportYear}. Add line items in Budget details and they will appear here.
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      financialLineItems.map((item, index) => {
+                        const total = item.unitCost * item.qty;
+                        return (
+                          <tr key={`${item.id}-${index}`}>
+                            <td>{(item as any).budgetName}</td>
+                            <td>{item.category}</td>
+                            <td>{item.description}</td>
+                            <td>{item.frequency === 'monthly' ? 'Monthly' : 'One-Time'}</td>
+                            <td>${item.unitCost.toLocaleString()}</td>
+                            <td>{item.qty}</td>
+                            <td>${total.toLocaleString()}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+
+                <h3 style={{ color: '#fff', marginBottom: '0.75rem' }}>Actual Expenses ({formatMonthLabel(selectedReport.period)})</h3>
+                <table className="data-table" style={{ marginBottom: '1.5rem' }}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Program</th>
+                      <th>Category</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedMonthExpenses.length === 0 ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center' }}>No expense records for this month</td></tr>
+                    ) : (
+                      selectedMonthExpenses.map((expense) => (
+                        <tr key={expense.id}>
+                          <td>{new Date(expense.date).toLocaleDateString()}</td>
+                          <td>{expense.description}</td>
+                          <td>{expense.programName}</td>
+                          <td>{expense.category}</td>
+                          <td>${Number(expense.amount || 0).toLocaleString()}</td>
+                          <td>{expense.status}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+
+                <div className="budget-summary">
+                  <div className="summary-item">
+                    <span>Approved Expenses:</span>
+                    <span>{selectedMonthApprovedExpenses.length}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>Pending Expenses:</span>
+                    <span>{selectedMonthPendingExpenses.length}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>Monthly Recurring Estimate:</span>
+                    <span>${monthlyEstimated.toLocaleString()}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>One-Time Estimate:</span>
+                    <span>${oneTimeEstimated.toLocaleString()}</span>
+                  </div>
+                </div>
+              </>
             )}
 
             {selectedReport.type === 'donor' && (
