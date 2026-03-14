@@ -1,0 +1,236 @@
+/* ── Screen layout ───────────────────────────────────────────────────────── */
+.grc-budget-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #111;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+.grc-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.back-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.back-btn:hover { background: #222; }
+
+.month-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.month-picker select {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.print-btn {
+  margin-left: auto;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.print-btn:hover { background: #22a060; }
+
+/* ── Report body (screen) ────────────────────────────────────────────────── */
+.grc-report {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 2.5rem;
+}
+
+.grc-header {
+  text-align: center;
+  border-bottom: 2px solid #333;
+  padding-bottom: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.grc-header h1 { font-size: 1.5rem; color: #fff; margin: 0 0 0.2rem; }
+.grc-header h2 { font-size: 1.2rem; color: #1a8f5a; margin: 0 0 0.25rem; }
+.grc-header h3 { font-size: 1rem; color: #ccc; margin: 0 0 0.5rem; font-weight: 400; }
+.meta { font-size: 0.8rem; color: #666; }
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+.grc-section { margin-bottom: 2.5rem; }
+.grc-section h4 {
+  font-size: 1rem;
+  color: #1a8f5a;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.grc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.grc-table th {
+  background: #222;
+  color: #aaa;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #333;
+}
+
+.grc-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #1e1e1e;
+  color: #ccc;
+}
+
+.grc-table tr:hover td { background: #1e1e1e; }
+
+.grc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.grc-table tfoot tr.subtotal td {
+  background: #1f2a22;
+  border-top: 1px solid #2d4a32;
+  padding: 0.6rem 0.75rem;
+  color: #e0e0e0;
+}
+
+.total-cell { color: #38d475 !important; font-size: 0.95rem; }
+
+/* ── Summary box ─────────────────────────────────────────────────────────── */
+.grc-summary-box {
+  background: #1a2520;
+  border: 1px solid #2d4a32;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+}
+
+.grc-summary-box h4 {
+  font-size: 1rem;
+  color: #1a8f5a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 1rem;
+  border-bottom: 1px solid #2d4a32;
+  padding-bottom: 0.5rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.summary-item .label { font-size: 0.78rem; color: #777; text-transform: uppercase; letter-spacing: 0.03em; }
+.summary-item .value { font-size: 1.15rem; font-weight: 700; color: #e0e0e0; }
+.summary-item .usd   { font-size: 0.82rem; color: #888; }
+
+.summary-item.highlight .value { color: #38d475; font-size: 1.4rem; }
+.summary-item.highlight .usd   { color: #1a8f5a; font-size: 0.9rem; }
+
+.note {
+  font-size: 0.8rem;
+  color: #666;
+  border-top: 1px solid #252525;
+  padding-top: 0.75rem;
+  margin: 0;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.grc-footer {
+  text-align: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid #282828;
+  font-size: 0.78rem;
+  color: #555;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PRINT STYLES  —  override everything for clean black-on-white output
+   ════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  @page { size: A4 landscape; margin: 12mm 15mm; }
+
+  .no-print { display: none !important; }
+
+  .grc-budget-page {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .grc-report {
+    background: #fff !important;
+    border: none !important;
+    padding: 0;
+  }
+
+  .grc-header h1 { color: #000 !important; font-size: 18pt; }
+  .grc-header h2 { color: #006633 !important; font-size: 14pt; }
+  .grc-header h3 { color: #333 !important; font-size: 12pt; }
+  .meta          { color: #555 !important; font-size: 9pt; }
+
+  .grc-section h4 { color: #006633 !important; border-color: #ccc !important; font-size: 10pt; }
+
+  .grc-table { font-size: 8.5pt; }
+  .grc-table th { background: #f0f0f0 !important; color: #000 !important; border-bottom: 1pt solid #999 !important; }
+  .grc-table td { color: #000 !important; border-bottom: 0.5pt solid #ddd !important; }
+  .grc-table tr:hover td { background: transparent !important; }
+  .grc-table tfoot tr.subtotal td { background: #e8f4ec !important; color: #000 !important; border-color: #aaa !important; }
+
+  .total-cell { color: #006633 !important; }
+
+  .grc-summary-box {
+    background: #f0f8f4 !important;
+    border-color: #aaa !important;
+    break-inside: avoid;
+  }
+  .grc-summary-box h4 { color: #006633 !important; border-color: #ccc !important; }
+  .summary-item .label { color: #555 !important; }
+  .summary-item .value { color: #000 !important; }
+  .summary-item .usd   { color: #555 !important; }
+  .summary-item.highlight .value { color: #006633 !important; }
+  .summary-item.highlight .usd   { color: #006633 !important; }
+  .note { color: #555 !important; border-color: #ddd !important; }
+
+  .grc-footer { color: #555 !important; border-color: #ddd !important; font-size: 8pt; }
+}

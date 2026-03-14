@@ -204,7 +204,15 @@ export const BudgetsPage = () => {
                 ) : (
                   budgets.map((budget) => (
                     <tr key={budget.id}>
-                      <td>{budget.name}</td>
+                      <td>
+                        <Link
+                          to={`/budgets/${budget.id}`}
+                          style={{ color: '#4caf8a', textDecoration: 'none', fontWeight: 500 }}
+                          title="View detailed budget & reconciliation"
+                        >
+                          {budget.name}
+                        </Link>
+                      </td>
                       <td>{budget.category}</td>
                       <td>${budget.amount.toLocaleString()}</td>
                       <td>${budget.allocated.toLocaleString()}</td>
@@ -295,7 +303,15 @@ export const BudgetsPage = () => {
                     ) : (
                       categoryBudgets.map((budget) => (
                         <tr key={budget.id}>
-                          <td>{budget.name}</td>
+                          <td>
+                            <Link
+                              to={`/budgets/${budget.id}`}
+                              style={{ color: '#4caf8a', textDecoration: 'none', fontWeight: 500 }}
+                              title="View detailed budget & reconciliation"
+                            >
+                              {budget.name}
+                            </Link>
+                          </td>
                           <td>${budget.amount.toLocaleString()}</td>
                           <td>${budget.allocated.toLocaleString()}</td>
                           <td>${budget.remaining.toLocaleString()}</td>

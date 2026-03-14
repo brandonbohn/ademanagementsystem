@@ -18,6 +18,8 @@ import { ParticipantsPage } from './pages/ParticipantsPage';
 import { SponsorshipProgramPage } from './pages/SponsorshipProgramPage';
 import { ProgramDashboardPage } from './pages/ProgramDashboardPage';
 import { GrantsPage } from './pages/GrantsPage';
+import { GirlsRescueCenterBudgetPage } from './pages/GirlsRescueCenterBudgetPage';
+import { BudgetDetailPage } from './pages/BudgetDetailPage';
 
 function App() {
   return (
@@ -28,6 +30,7 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
+          <Route path="/budgets/:id" element={<BudgetDetailPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/programs/sponsorship" element={<SponsorshipProgramPage />} />
@@ -40,6 +43,7 @@ function App() {
           <Route path="/donations" element={<DonationsPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/grants" element={<GrantsPage />} />
+          <Route path="/rescue-center-budget" element={<GirlsRescueCenterBudgetPage />} />
         </Routes>
       </Router>
     </ContentProvider>

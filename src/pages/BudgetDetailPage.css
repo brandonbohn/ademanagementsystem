@@ -1,0 +1,374 @@
+/* ── Screen layout ─────────────────────────────────────────────────────── */
+.bdp-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #111;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+.bdp-loading, .bdp-error {
+  padding: 3rem;
+  text-align: center;
+  font-size: 1rem;
+  color: #aaa;
+}
+.bdp-error { color: #f44336; }
+
+.bdp-empty {
+  color: #777;
+  font-style: italic;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+}
+
+/* ── Controls bar ─────────────────────────────────────────────────────── */
+.bdp-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bdp-back {
+  color: #aaa;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: 1px solid #444;
+  padding: 0.4rem 0.9rem;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.bdp-back:hover { background: #1e1e1e; color: #fff; }
+
+.bdp-view-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #444;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bdp-view-toggle button {
+  padding: 0.4rem 1rem;
+  background: #1a1a1a;
+  color: #aaa;
+  border: none;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.bdp-view-toggle button.active {
+  background: #1a7a4a;
+  color: #fff;
+  font-weight: 600;
+}
+.bdp-view-toggle button:hover:not(.active) { background: #222; }
+
+.bdp-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: #aaa;
+}
+.bdp-field input, .bdp-field select {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.88rem;
+}
+
+.bdp-print-btn {
+  margin-left: auto;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1.3rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.bdp-print-btn:hover { background: #22a060; }
+
+.bdp-add-btn {
+  background: #1a3a5a;
+  color: #7ec8f0;
+  border: 1px solid #2a5a8a;
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.bdp-add-btn:hover { background: #1e4a78; }
+.bdp-add-btn.cancel { background: #3a1a1a; color: #f87171; border-color: #6a2a2a; }
+
+/* ── Add / edit form panel ────────────────────────────────────────────── */
+.bdp-add-form {
+  background: #161e28;
+  border: 1px solid #2a4060;
+  border-radius: 8px;
+  padding: 1.4rem 1.8rem;
+  margin-bottom: 1.5rem;
+}
+.bdp-add-form h3 { font-size: 0.95rem; color: #7ec8f0; margin: 0 0 1.2rem; }
+
+.bdp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+.bdp-form-field.full-width { grid-column: 1 / -1; }
+.bdp-form-field label { display: block; font-size: 0.76rem; color: #777; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.bdp-form-field input,
+.bdp-form-field select {
+  width: 100%;
+  background: #1a1a2a;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.87rem;
+  box-sizing: border-box;
+}
+.bdp-form-field input:focus,
+.bdp-form-field select:focus { border-color: #2a6aaa; outline: none; }
+
+.bdp-form-preview {
+  background: #1a2530;
+  border: 1px solid #2a4060;
+  border-radius: 5px;
+  padding: 0.6rem 1rem;
+  font-size: 0.88rem;
+  color: #4ade80;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+.bdp-form-preview .usd { color: #888; }
+
+.bdp-form-actions { display: flex; gap: 0.75rem; }
+.bdp-save-btn {
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.bdp-save-btn:hover:not(:disabled) { background: #22a060; }
+.bdp-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.bdp-cancel-btn {
+  background: transparent;
+  color: #888;
+  border: 1px solid #444;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.bdp-cancel-btn:hover { background: #1e1e1e; color: #ccc; }
+
+/* ── Row action buttons ───────────────────────────────────────────────── */
+.actions-col { width: 70px; }
+.bdp-row-actions { display: flex; gap: 0.3rem; }
+.bdp-edit-btn,
+.bdp-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+.bdp-edit-btn:hover { background: #1e3a5a; }
+.bdp-del-btn:hover  { background: #3a1010; }
+
+/* ── Grand total emphasis ─────────────────────────────────────────────── */
+.bdp-grand-total { color: #38d475 !important; font-size: 0.93rem; }
+.bdp-plain-desc  { font-size: 0.85rem; color: #777; margin-top: 0.75rem; }
+
+/* ── Report body ──────────────────────────────────────────────────────── */
+.bdp-report {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 2.5rem;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+.bdp-header {
+  text-align: center;
+  border-bottom: 2px solid #2a2a2a;
+  padding-bottom: 1.2rem;
+  margin-bottom: 2rem;
+}
+.bdp-header h1 { font-size: 1.4rem; color: #fff; margin: 0 0 0.2rem; }
+.bdp-header h2 { font-size: 1.15rem; color: #1a8f5a; margin: 0 0 0.2rem; }
+.bdp-header h3 { font-size: 0.95rem; color: #bbb; margin: 0 0 0.5rem; font-weight: 400; }
+.bdp-meta      { font-size: 0.78rem; color: #555; }
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+.bdp-section { margin-bottom: 2.5rem; }
+.bdp-section h4 {
+  font-size: 0.9rem;
+  color: #1a8f5a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #222;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
+.bdp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.bdp-table th {
+  background: #1e1e1e;
+  color: #888;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #2a2a2a;
+}
+.bdp-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #1c1c1c;
+  color: #ccc;
+  vertical-align: top;
+}
+.bdp-table tr:hover td { background: #1e1e1e; }
+.bdp-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.bdp-item-name { display: block; color: #e0e0e0; }
+.bdp-item-desc { font-size: 0.78rem; color: #666; margin-top: 0.15rem; }
+
+.bdp-subtotal td {
+  background: #1a2520 !important;
+  border-top: 1px solid #2d4a32;
+  color: #e0e0e0;
+  padding: 0.65rem 0.75rem;
+}
+
+.bdp-current-month td { background: #1c2420 !important; }
+
+.positive { color: #4ade80 !important; }
+.negative { color: #f87171 !important; }
+
+/* ── Status badges ────────────────────────────────────────────────────── */
+.bdp-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.bdp-badge.approved { background: #1a3a25; color: #4ade80; }
+.bdp-badge.pending  { background: #3a2a0a; color: #fbbf24; }
+.bdp-badge.rejected { background: #3a1010; color: #f87171; }
+
+/* ── Reconciliation cards ─────────────────────────────────────────────── */
+.bdp-recon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+.bdp-recon-card {
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 1.1rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.bdp-recon-card .rc-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.03em; }
+.bdp-recon-card .rc-value { font-size: 1.2rem; font-weight: 700; color: #e0e0e0; }
+.bdp-recon-card .rc-usd   { font-size: 0.82rem; color: #666; }
+
+.bdp-recon-card.under .rc-value { color: #4ade80; }
+.bdp-recon-card.under .rc-label { color: #1a8f5a; }
+.bdp-recon-card.over  .rc-value { color: #f87171; }
+.bdp-recon-card.over  .rc-label { color: #b91c1c; }
+.bdp-recon-card.highlight .rc-value { color: #60a5fa; font-size: 1.5rem; }
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+.bdp-footer {
+  text-align: center;
+  border-top: 1px solid #222;
+  padding-top: 1.2rem;
+  font-size: 0.78rem;
+  color: #444;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PRINT  —  clean black-on-white output
+   ════════════════════════════════════════════════════════════════════════ */
+@media print {
+  @page { size: A4 landscape; margin: 12mm 15mm; }
+
+  .no-print { display: none !important; }
+
+  .bdp-page {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0;
+    max-width: 100%;
+  }
+  .bdp-report {
+    background: #fff !important;
+    border: none !important;
+    padding: 0;
+  }
+
+  .bdp-header h1 { color: #000 !important; font-size: 15pt; }
+  .bdp-header h2 { color: #006633 !important; font-size: 13pt; }
+  .bdp-header h3 { color: #333 !important; font-size: 11pt; }
+  .bdp-meta      { color: #555 !important; font-size: 8pt; }
+
+  .bdp-section h4 { color: #006633 !important; border-color: #ccc !important; font-size: 9pt; }
+
+  .bdp-table { font-size: 8pt; }
+  .bdp-table th { background: #f0f0f0 !important; color: #000 !important; border-color: #999 !important; }
+  .bdp-table td { color: #000 !important; border-color: #ddd !important; }
+  .bdp-table tr:hover td { background: transparent !important; }
+  .bdp-subtotal td { background: #e8f4ec !important; border-color: #aaa !important; color: #000 !important; }
+  .bdp-current-month td { background: #fffde7 !important; }
+
+  .bdp-item-name { color: #000 !important; }
+  .bdp-item-desc { color: #555 !important; }
+
+  .bdp-badge.approved { background: #d1fae5 !important; color: #065f46 !important; }
+  .bdp-badge.pending  { background: #fef3c7 !important; color: #92400e !important; }
+  .bdp-badge.rejected { background: #fee2e2 !important; color: #991b1b !important; }
+
+  .bdp-recon-grid { grid-template-columns: repeat(4, 1fr); }
+  .bdp-recon-card { background: #f9fafb !important; border-color: #ddd !important; }
+  .bdp-recon-card .rc-label { color: #555 !important; }
+  .bdp-recon-card .rc-value { color: #000 !important; }
+  .bdp-recon-card .rc-usd   { color: #555 !important; }
+  .bdp-recon-card.under .rc-value { color: #006633 !important; }
+  .bdp-recon-card.over  .rc-value { color: #b91c1c !important; }
+  .bdp-recon-card.highlight .rc-value { color: #1d4ed8 !important; }
+
+  .positive { color: #006633 !important; }
+  .negative { color: #b91c1c !important; }
+
+  .bdp-footer { color: #555 !important; border-color: #ddd !important; font-size: 7.5pt; }
+
+  .bdp-section { break-inside: avoid; }
+}
