@@ -1,0 +1,34 @@
+.page-container {
+  min-height: 100vh;
+  background-color: #000;
+  padding: 2rem;
+  color: #fff;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #333;
+}
+
+.page-header h1 {
+  color: #fff;
+  margin: 0;
+}
+
+.home-link {
+  background-color: #ff0000;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 5px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.home-link:hover {
+  background-color: #cc0000;
+}

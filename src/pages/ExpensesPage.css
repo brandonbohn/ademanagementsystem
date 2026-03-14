@@ -1,0 +1,315 @@
+.expenses-overview {
+  padding: 2rem;
+}
+
+.expense-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.action-btn {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.quick-btn {
+  background-color: #ff0000;
+  color: #fff;
+}
+
+.quick-btn:hover {
+  background-color: #cc0000;
+}
+
+.detailed-btn {
+  background-color: #333;
+  color: #fff;
+  border: 2px solid #ff0000;
+}
+
+.detailed-btn:hover {
+  background-color: #ff0000;
+}
+
+.expense-chart-section {
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 10px;
+  border: 2px solid #333;
+  margin-bottom: 2rem;
+}
+
+.expense-chart-section h2 {
+  color: #fff;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.chart-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 300px;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 2px solid #ff0000;
+}
+
+.chart-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar-fill {
+  width: 100%;
+  background: linear-gradient(to top, #ff0000, #ff6666);
+  border-radius: 5px 5px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.5rem;
+  transition: all 0.3s;
+  cursor: pointer;
+  position: relative;
+  min-height: 20px;
+}
+
+.bar-fill:hover {
+  background: linear-gradient(to top, #cc0000, #ff4444);
+  transform: scaleY(1.05);
+}
+
+.bar-value {
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bar-label {
+  color: #999;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.chart-total {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #0a0a0a;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.chart-total strong {
+  color: #ff0000;
+}
+
+.expense-table-section {
+  margin-top: 3rem;
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 10px;
+  border: 2px solid #333;
+}
+
+.expense-table-section h2 {
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.expense-detail-table {
+  width: 100%;
+  margin-top: 1rem;
+  min-width: 1200px; /* Ensure table is wide enough to show all columns including Actions */
+}
+
+.expense-table-section {
+  position: relative;
+}
+
+.expense-table-section::after {
+  content: '← Scroll to see all columns →';
+  display: block;
+  text-align: center;
+  color: #ff6666;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.expense-detail-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #1a1a1a;
+  z-index: 10;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background-color: #333;
+  border: 1px solid #ff0000;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.amount-cell {
+  text-align: right;
+  font-weight: 600;
+  color: #ff6666;
+}
+
+.expense-detail-table tfoot {
+  border-top: 3px solid #ff0000;
+}
+
+.expense-detail-table tfoot td {
+  padding: 1rem;
+  background-color: #0a0a0a;
+  font-size: 1.1rem;
+}
+
+.total-amount {
+  color: #ff0000;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.action-buttons {
+  text-align: center;
+}
+
+.edit-btn {
+  background-color: #2196F3 !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 0.4rem 0.8rem !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  transition: all 0.2s !important;
+  display: inline-block !important;
+}
+
+.edit-btn:hover {
+  background-color: #1976D2 !important;
+  transform: translateY(-1px);
+}
+
+.delete-btn {
+  background-color: #f44336 !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 0.4rem 0.8rem !important;
+  border-radius:4px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  transition: all 0.2s !important;
+  display: inline-block !important;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f !important;
+  transform: translateY(-1px);
+}
+
+.edit-mode-selector {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: #1a1a1a;
+  border: 2px solid #ff0000;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.edit-mode-selector h3 {
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cancel-btn {
+  background-color: #666;
+  color: #fff;
+  border: 2px solid #999;
+}
+
+.cancel-btn:hover {
+  background-color: #888;
+  border-color: #fff;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #ff0000;
+}
+
+.form-header h2 {
+  margin: 0;
+  color: #fff;
+}
+
+.close-btn {
+  background-color: transparent;
+  color: #ff0000;
+  border: 2px solid #ff0000;
+  padding: 0.5rem 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background-color: #ff0000;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .expense-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+
+  .bar-value {
+    font-size: 0.65rem;
+  }
+
+  .bar-label {
+    font-size: 0.7rem;
+  }
+}
