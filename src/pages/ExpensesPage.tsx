@@ -293,9 +293,12 @@ export const ExpensesPage = () => {
                             ))
                           ) : (
                             <>
-                              <option value="Operations">Operations</option>
-                              <option value="Programs">Programs</option>
-                              <option value="Marketing">Marketing</option>
+                             <option value="Programs">Programs</option> 
+                      <option value="Activities">Projects</option>
+                      <option value="Operations">Operations</option>
+                      <option value="Field Activity Budget">Field Activity Budget</option>
+                      <option value="Emergency Fund">Emergency Fund</option>
+                      <option value="Income Generation">Income Generation</option>
                             </>
                           )}
                         </select>
