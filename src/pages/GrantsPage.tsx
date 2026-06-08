@@ -4,6 +4,17 @@ import { grantAPI } from '../services/api';
 import type { Grant, GrantRequirement } from '../types';
 import './TabbedPage.css';
 
+interface GrantFile {
+  id: string;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  fileType: string;
+  description: string;
+  uploadedAt: string;
+}
+
 type GrantForm = {
   title: string;
   funder: string;
@@ -65,7 +76,7 @@ const parseMeta = (html: string, names: string[]) => {
 };
 
 export const GrantsPage = () => {
-  const [activeTab, setActiveTab] = useState<'view' | 'add'>('view');
+  const [activeTab, setActiveTab] = useState<'view' | 'add' | 'files'>('view');
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +85,12 @@ export const GrantsPage = () => {
   const [newRequirementLabel, setNewRequirementLabel] = useState('');
   const [newRequirementDueDate, setNewRequirementDueDate] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [selectedGrantForFiles, setSelectedGrantForFiles] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<GrantFile[]>([]);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFileType, setUploadFileType] = useState('');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   const fetchGrants = async () => {
     try {
@@ -235,6 +252,54 @@ export const GrantsPage = () => {
     }
   };
 
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGrantForFiles || !uploadFile) {
+      setError('Please select a grant and a file to upload');
+      return;
+    }
+
+    try {
+      setUploadLoading(true);
+      await grantAPI.uploadFile(selectedGrantForFiles, uploadFile, uploadFileType, uploadDescription);
+      setUploadFile(null);
+      setUploadFileType('');
+      setUploadDescription('');
+      await fetchGrantFiles(selectedGrantForFiles);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload file');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const fetchGrantFiles = async (grantId: string) => {
+    try {
+      const files = await grantAPI.getFiles(grantId);
+      setUploadedFiles(files);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch files');
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Delete this file?')) return;
+    try {
+      await grantAPI.deleteFile(fileId);
+      if (selectedGrantForFiles) {
+        await fetchGrantFiles(selectedGrantForFiles);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete file');
+    }
+  };
+
+  const handleGrantSelectForFiles = (grantId: string) => {
+    setSelectedGrantForFiles(grantId);
+    fetchGrantFiles(grantId);
+  };
+
   const totals = useMemo(() => {
     const totalAwarded = grants.reduce((sum, grant) => sum + (grant.amountAwarded || 0), 0);
     const totalReceived = grants.reduce((sum, grant) => sum + (grant.amountReceived || 0), 0);
@@ -256,6 +321,9 @@ export const GrantsPage = () => {
         </button>
         <button className={`tab ${activeTab === 'add' ? 'active' : ''}`} onClick={() => setActiveTab('add')}>
           {editingId ? 'Edit Grant' : '+ Add Grant'}
+        </button>
+        <button className={`tab ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}>
+          📁 Grant Materials
         </button>
         <Link to="/home" className="home-button">Home</Link>
       </div>
@@ -396,6 +464,165 @@ export const GrantsPage = () => {
               <div className="form-row"><label>Notes:</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
               <button type="submit" className="submit-btn">{editingId ? 'Update Grant' : 'Create Grant'}</button>
             </form>
+          </div>
+        )}
+
+        {activeTab === 'files' && (
+          <div className="form-layout">
+            <h2>Grant Materials Repository</h2>
+            
+            <div style={{ marginBottom: '2rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Select Grant:</label>
+              <select
+                value={selectedGrantForFiles || ''}
+                onChange={(e) => handleGrantSelectForFiles(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="">-- Select a grant --</option>
+                {grants.map((grant) => (
+                  <option key={grant.id} value={grant.id}>{grant.title}</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedGrantForFiles && (
+              <>
+                <div style={{ 
+                  border: '1px solid #333', 
+                  borderRadius: '8px', 
+                  padding: '1.5rem', 
+                  backgroundColor: '#111',
+                  marginBottom: '2rem'
+                }}>
+                  <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Upload File</h3>
+                  <form onSubmit={handleFileUpload}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>File:</label>
+                      <input
+                        type="file"
+                        onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          backgroundColor: '#1a1a1a',
+                          border: '1px solid #333',
+                          borderRadius: '6px',
+                          color: '#fff'
+                        }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>File Type:</label>
+                      <select
+                        value={uploadFileType}
+                        onChange={(e) => setUploadFileType(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          backgroundColor: '#1a1a1a',
+                          border: '1px solid #333',
+                          borderRadius: '6px',
+                          color: '#fff'
+                        }}
+                      >
+                        <option value="">-- Select type --</option>
+                        <option value="application">Application</option>
+                        <option value="proposal">Proposal</option>
+                        <option value="budget">Budget</option>
+                        <option value="report">Report</option>
+                        <option value="contract">Contract</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Description:</label>
+                      <input
+                        type="text"
+                        value={uploadDescription}
+                        onChange={(e) => setUploadDescription(e.target.value)}
+                        placeholder="Optional description"
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          backgroundColor: '#1a1a1a',
+                          border: '1px solid #333',
+                          borderRadius: '6px',
+                          color: '#fff'
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={uploadLoading}
+                      className="submit-btn"
+                      style={{ opacity: uploadLoading ? 0.6 : 1 }}
+                    >
+                      {uploadLoading ? 'Uploading...' : 'Upload File'}
+                    </button>
+                  </form>
+                </div>
+
+                <div>
+                  <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Uploaded Files</h3>
+                  {uploadedFiles.length === 0 ? (
+                    <div style={{ color: '#999' }}>No files uploaded yet.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      {uploadedFiles.map((file) => (
+                        <div
+                          key={file.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem',
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #333',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          <div>
+                            <div style={{ color: '#fff', fontWeight: '600' }}>{file.originalName}</div>
+                            <div style={{ color: '#999', fontSize: '0.85rem' }}>
+                              {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB • {new Date(file.uploadedAt).toLocaleDateString()}
+                            </div>
+                            {file.description && (
+                              <div style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '0.25rem' }}>{file.description}</div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <a
+                              href={`${import.meta.env.VITE_API_URL}/files/${file.id}/download`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="edit-btn"
+                              style={{ textDecoration: 'none', padding: '0.5rem 1rem' }}
+                            >
+                              Download
+                            </a>
+                            <button
+                              className="delete-btn"
+                              onClick={() => handleDeleteFile(file.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -521,6 +521,34 @@ export const grantAPI = {
     });
     if (!response.ok) throw new Error('Failed to delete grant');
     return response.json();
+  },
+
+  uploadFile: async (grantId: string, file: File, fileType?: string, description?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (fileType) formData.append('fileType', fileType);
+    if (description) formData.append('description', description);
+
+    const response = await fetch(`${API_URL}/grants/${grantId}/files`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!response.ok) throw new Error('Failed to upload file');
+    return response.json();
+  },
+
+  getFiles: async (grantId: string) => {
+    const response = await fetch(`${API_URL}/grants/${grantId}/files`);
+    if (!response.ok) throw new Error('Failed to fetch files');
+    return response.json();
+  },
+
+  deleteFile: async (fileId: string) => {
+    const response = await fetch(`${API_URL}/files/${fileId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Failed to delete file');
+    return response.json();
   }
 };
 
