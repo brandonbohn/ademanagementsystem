@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { grantAPI } from '../services/api';
+import { grantAPI, resourceAPI } from '../services/api';
 import type { Grant, GrantRequirement } from '../types';
 import './TabbedPage.css';
 
@@ -11,6 +11,18 @@ interface GrantFile {
   fileSize: number;
   mimeType: string;
   fileType: string;
+  description: string;
+  uploadedAt: string;
+}
+
+interface Resource {
+  id: string;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  category: string;
+  title: string;
   description: string;
   uploadedAt: string;
 }
@@ -76,7 +88,7 @@ const parseMeta = (html: string, names: string[]) => {
 };
 
 export const GrantsPage = () => {
-  const [activeTab, setActiveTab] = useState<'view' | 'add' | 'files'>('view');
+  const [activeTab, setActiveTab] = useState<'view' | 'add' | 'files' | 'resources'>('view');
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +103,12 @@ export const GrantsPage = () => {
   const [uploadFileType, setUploadFileType] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [resourceCategory, setResourceCategory] = useState('starter-kit');
+  const [resourceTitle, setResourceTitle] = useState('');
+  const [resourceDescription, setResourceDescription] = useState('');
+  const [resourceUploadLoading, setResourceUploadLoading] = useState(false);
 
   const fetchGrants = async () => {
     try {
@@ -300,6 +318,47 @@ export const GrantsPage = () => {
     fetchGrantFiles(grantId);
   };
 
+  const fetchResources = async () => {
+    try {
+      const data = await resourceAPI.getAll();
+      setResources(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch resources');
+    }
+  };
+
+  const handleResourceUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resourceFile || !resourceTitle) {
+      setError('Please select a file and enter a title');
+      return;
+    }
+
+    try {
+      setResourceUploadLoading(true);
+      await resourceAPI.upload(resourceFile, resourceCategory, resourceTitle, resourceDescription);
+      setResourceFile(null);
+      setResourceTitle('');
+      setResourceDescription('');
+      await fetchResources();
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload resource');
+    } finally {
+      setResourceUploadLoading(false);
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: string) => {
+    if (!confirm('Delete this resource?')) return;
+    try {
+      await resourceAPI.delete(resourceId);
+      await fetchResources();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete resource');
+    }
+  };
+
   const totals = useMemo(() => {
     const totalAwarded = grants.reduce((sum, grant) => sum + (grant.amountAwarded || 0), 0);
     const totalReceived = grants.reduce((sum, grant) => sum + (grant.amountReceived || 0), 0);
@@ -324,6 +383,9 @@ export const GrantsPage = () => {
         </button>
         <button className={`tab ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}>
           📁 Grant Materials
+        </button>
+        <button className={`tab ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => setActiveTab('resources')}>
+          📚 Resources
         </button>
         <Link to="/home" className="home-button">Home</Link>
       </div>
@@ -623,6 +685,155 @@ export const GrantsPage = () => {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {activeTab === 'resources' && (
+          <div className="form-layout">
+            <h2>Grant Resources</h2>
+            
+            <div style={{ 
+              border: '1px solid #333', 
+              borderRadius: '8px', 
+              padding: '1.5rem', 
+              backgroundColor: '#111',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Upload Resource</h3>
+              <form onSubmit={handleResourceUpload}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>File:</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setResourceFile(e.target.files?.[0] || null)}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: '6px',
+                      color: '#fff'
+                    }}
+                    required
+                  />
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Title:</label>
+                  <input
+                    type="text"
+                    value={resourceTitle}
+                    onChange={(e) => setResourceTitle(e.target.value)}
+                    placeholder="e.g., Grant Starter Kit"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: '6px',
+                      color: '#fff'
+                    }}
+                    required
+                  />
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Category:</label>
+                  <select
+                    value={resourceCategory}
+                    onChange={(e) => setResourceCategory(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: '6px',
+                      color: '#fff'
+                    }}
+                  >
+                    <option value="starter-kit">Starter Kit</option>
+                    <option value="template">Template</option>
+                    <option value="guide">Guide</option>
+                    <option value="policy">Policy</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff' }}>Description:</label>
+                  <input
+                    type="text"
+                    value={resourceDescription}
+                    onChange={(e) => setResourceDescription(e.target.value)}
+                    placeholder="Optional description"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: '6px',
+                      color: '#fff'
+                    }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={resourceUploadLoading}
+                  className="submit-btn"
+                  style={{ opacity: resourceUploadLoading ? 0.6 : 1 }}
+                >
+                  {resourceUploadLoading ? 'Uploading...' : 'Upload Resource'}
+                </button>
+              </form>
+            </div>
+
+            <div>
+              <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Available Resources</h3>
+              {resources.length === 0 ? (
+                <div style={{ color: '#999' }}>No resources uploaded yet.</div>
+              ) : (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {resources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '1rem',
+                        backgroundColor: '#1a1a1a',
+                        border: '1px solid #333',
+                        borderRadius: '6px'
+                      }}
+                    >
+                      <div>
+                        <div style={{ color: '#fff', fontWeight: '600' }}>{resource.title}</div>
+                        <div style={{ color: '#999', fontSize: '0.85rem' }}>
+                          {resource.category} • {resource.originalName} • {(resource.fileSize / 1024).toFixed(1)} KB
+                        </div>
+                        {resource.description && (
+                          <div style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '0.25rem' }}>{resource.description}</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <a
+                          href={`${import.meta.env.VITE_API_URL}/resources/${resource.id}/download`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="edit-btn"
+                          style={{ textDecoration: 'none', padding: '0.5rem 1rem' }}
+                        >
+                          Download
+                        </a>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDeleteResource(resource.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

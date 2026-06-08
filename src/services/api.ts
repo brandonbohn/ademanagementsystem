@@ -552,3 +552,42 @@ export const grantAPI = {
   }
 };
 
+// Resources API
+export const resourceAPI = {
+  getAll: async (category?: string) => {
+    const url = category ? `${API_URL}/resources?category=${category}` : `${API_URL}/resources`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch resources');
+    return response.json();
+  },
+
+  getById: async (resourceId: string) => {
+    const response = await fetch(`${API_URL}/resources/${resourceId}`);
+    if (!response.ok) throw new Error('Failed to fetch resource');
+    return response.json();
+  },
+
+  upload: async (file: File, category: string, title: string, description?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    formData.append('title', title);
+    if (description) formData.append('description', description);
+
+    const response = await fetch(`${API_URL}/resources`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!response.ok) throw new Error('Failed to upload resource');
+    return response.json();
+  },
+
+  delete: async (resourceId: string) => {
+    const response = await fetch(`${API_URL}/resources/${resourceId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Failed to delete resource');
+    return response.json();
+  }
+};
+
