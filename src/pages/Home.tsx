@@ -4,23 +4,7 @@ import './Home.css';
 
 export const Home = () => {
   const { content, loading } = useContent();
-  const hiddenRoutes = new Set(['/participants', '/girls', '/sponsorships']);
   const isExternalUrl = (value: string) => /^https?:\/\//i.test(value);
-
-  const mergeMenuItems = (configured: any[] | undefined, defaults: any[]) => {
-    const merged = (Array.isArray(configured) ? configured : []).filter(
-      (item) => !hiddenRoutes.has(item.route)
-    );
-    const existingRoutes = new Set(merged.map((item) => item.route));
-
-    defaults.forEach((item) => {
-      if (!existingRoutes.has(item.route)) {
-        merged.push(item);
-      }
-    });
-
-    return merged;
-  };
 
   if (loading) {
     return (
@@ -37,22 +21,7 @@ export const Home = () => {
     tagline: 'Welcome to your management dashboard'
   };
 
-  const defaultMenuItems = [
-    { id: 'dashboard', route: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'budgets', route: '/budgets', icon: '💼', label: 'Budgets' },
-    { id: 'programs', route: '/programs', icon: '📁', label: 'Programs' },
-    { id: 'expenses', route: '/expenses', icon: '💸', label: 'Expenses' },
-    { id: 'reports', route: '/reports', icon: '📑', label: 'Reports' },
-    { id: 'donors', route: '/donors', icon: '🤝', label: 'Donor List' },
-    { id: 'donations', route: '/donations', icon: '💰', label: 'Donations' },
-    { id: 'grants', route: '/grants', icon: '📜', label: 'Grant Tracking' },
-    { id: 'team', route: '/team', icon: '🧑‍🤝‍🧑', label: 'Team' },
-    { id: 'website', route: 'https://adekiberafoundation.org', icon: '🌐', label: 'Website' },
-    { id: 'website-editor', route: 'https://adekiberafoundation.org/wp-admin', icon: '🛠️', label: 'Website Editor' }
-  ];
-
-  const configuredMenuItems = content?.navigation?.mainMenu;
-  const menuItems = mergeMenuItems(configuredMenuItems, defaultMenuItems);
+  const menuItems = content?.navigation?.mainMenu || [];
 
   return (
     <div className="home-page">

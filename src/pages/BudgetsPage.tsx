@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { budgetAPI } from '../services/api';
+import { budgetAPI, contentAPI } from '../services/api';
 import { useContent } from '../contexts/ContentContext';
 import './TabbedPage.css';
 
@@ -29,7 +29,18 @@ export const BudgetsPage = () => {
     amount: '',
     description: ''
   });
-  const { content } = useContent();
+  const { content, refreshContent } = useContent();
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    
+    try {
+      await contentAPI.deleteBudgetCategory(categoryId);
+      await refreshContent();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete category');
+    }
+  };
 
   useEffect(() => {
     fetchBudgets();
@@ -144,13 +155,32 @@ export const BudgetsPage = () => {
           Overview
         </button>
         {categories.map((cat: any) => (
-          <button
-            key={cat.id}
-            className={`tab ${activeTab === cat.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(cat.id)}
-          >
-            {cat.name}
-          </button>
+          <div key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              className={`tab ${activeTab === cat.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(cat.id)}
+            >
+              {cat.name}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteCategory(cat.id);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#f44336',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                marginLeft: '0.5rem',
+                padding: '0.25rem'
+              }}
+              title="Delete category"
+            >
+              ×
+            </button>
+          </div>
         ))}
         <button 
           className={`tab ${activeTab === 'add' ? 'active' : ''}`}

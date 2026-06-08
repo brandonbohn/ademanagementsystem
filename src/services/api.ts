@@ -204,13 +204,21 @@ export const contentAPI = {
     return response.json();
   },
   
-  updateSection: async (section: string, content: any) => {
+  updateSection: async (section: string, data: any) => {
     const response = await fetch(`${API_URL}/donor-system-content/${section}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(content)
+      body: JSON.stringify(data)
     });
     if (!response.ok) throw new Error(`Failed to update ${section} content`);
+    return response.json();
+  },
+  
+  deleteBudgetCategory: async (categoryId: string) => {
+    const response = await fetch(`${API_URL}/donor-system-content/budgets/categories/${categoryId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Failed to delete budget category');
     return response.json();
   }
 };
