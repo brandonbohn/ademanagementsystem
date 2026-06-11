@@ -544,7 +544,7 @@ export const grantAPI = {
   },
 
   deleteFile: async (fileId: string) => {
-    const response = await fetch(`${API_URL}/files/${fileId}`, {
+    const response = await fetch(`${API_URL}/grants/files/${fileId}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Failed to delete file');
