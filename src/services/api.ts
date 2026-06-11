@@ -549,6 +549,12 @@ export const grantAPI = {
     });
     if (!response.ok) throw new Error('Failed to delete file');
     return response.json();
+  },
+
+  fetchUrl: async (url: string) => {
+    const response = await fetch(`${API_URL}/proxy/fetch-url?url=${encodeURIComponent(url)}`);
+    if (!response.ok) throw new Error('Failed to fetch URL');
+    return response.text();
   }
 };
 

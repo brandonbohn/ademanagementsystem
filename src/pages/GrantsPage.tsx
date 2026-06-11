@@ -172,11 +172,7 @@ export const GrantsPage = () => {
 
     try {
       setImportStatus('Trying to import data from website...');
-      const response = await fetch(rawUrl);
-      if (!response.ok) {
-        throw new Error(`Source URL returned ${response.status}`);
-      }
-      const html = await response.text();
+      const html = await grantAPI.fetchUrl(rawUrl);
 
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
       const ogTitle = parseMeta(html, ['og:title', 'twitter:title']);
